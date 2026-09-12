@@ -18,6 +18,7 @@ from fnmatch import fnmatch
 from pathlib import Path
 from typing import Any
 
+from parity_gate import graphql
 from parity_gate.differ import DiffOptions
 from parity_gate.safety import Policy, scan_for_secrets
 
@@ -95,6 +96,31 @@ class Case:
     array_keys: dict[str, str] = field(default_factory=dict)
     mutating: bool = False
     repeats: int | None = None
+    #: A GraphQL document. When set, the case is a POST to ``path`` carrying it.
+    graphql: str | None = None
+    variables: dict[str, Any] = field(default_factory=dict)
+    operation_name: str | None = None
+    #: Set on a case that is supposed to come back with GraphQL errors.
+    expect_graphql_errors: bool = False
+
+    @property
+    def is_graphql(self) -> bool:
+        return self.graphql is not None
+
+    @property
+    def graphql_operation(self) -> str | None:
+        return graphql.operation_type(self.graphql) if self.graphql else None
+
+    @property
+    def reads_only(self) -> bool:
+        """Whether this case cannot change anything, method notwithstanding."""
+        return self.is_graphql and graphql.is_read(self.graphql or "")
+
+    def request_body(self) -> Any:
+        """What actually goes on the wire."""
+        if self.is_graphql:
+            return graphql.build_body(self.graphql or "", self.variables, self.operation_name)
+        return self.body
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -105,6 +131,7 @@ class Case:
             "method": self.method,
             "path": self.path,
             "mutating": self.mutating,
+            "graphql": self.graphql_operation,
         }
 
 
@@ -317,9 +344,28 @@ def _case(raw: Any, index: int, source: Path) -> Case:
         raise SuiteError(f"{where} is missing a string `id`")
     where = f"{source}: case {case_id}"
 
-    method = str(raw.get("method", "GET")).upper()
+    document = raw.get("graphql")
+    if document is not None and not str(document).strip():
+        raise SuiteError(f"{where}: `graphql` is present but empty")
+
+    method = str(raw.get("method", "POST" if document else "GET")).upper()
     if method not in VALID_METHODS:
         raise SuiteError(f"{where}: method {method!r} is not one of {sorted(VALID_METHODS)}")
+    if document is not None:
+        if method != "POST":
+            raise SuiteError(
+                f"{where}: a GraphQL case is always a POST; remove `method` or set it to POST"
+            )
+        if raw.get("body") is not None:
+            raise SuiteError(
+                f"{where}: set either `graphql` or `body`, not both — the body is built "
+                "from the document, the variables and the operation name"
+            )
+        if graphql.operation_type(str(document)) == graphql.SUBSCRIPTION:
+            raise SuiteError(
+                f"{where}: subscriptions are long-lived streams and are not supported; "
+                "gate the query and mutation operations instead"
+            )
 
     path = raw.get("path")
     if not isinstance(path, str) or not path.startswith("/"):
@@ -356,6 +402,10 @@ def _case(raw: Any, index: int, source: Path) -> Case:
         array_keys={str(k): str(v) for k, v in (raw.get("array_keys") or {}).items()},
         mutating=bool(raw.get("mutating", False)),
         repeats=repeats,
+        graphql=(str(document) if document is not None else None),
+        variables=dict(raw.get("variables") or {}),
+        operation_name=(str(raw["operation_name"]) if raw.get("operation_name") else None),
+        expect_graphql_errors=bool(raw.get("expect_graphql_errors", False)),
     )
 
 

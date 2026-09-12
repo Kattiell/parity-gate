@@ -69,15 +69,15 @@ footer { margin-top: 40px; font-size: 12px; color: var(--muted); }
   <p class="muted">Contract parity between two API versions</p>
   <p><span class="verdict fail">FAIL</span></p>
   <div class="stats">
-    <div class="stat"><b>6</b><span>cases</span></div>
-    <div class="stat"><b>7</b><span>breaking drifts</span></div>
-    <div class="stat"><b>4</b><span>value differences</span></div>
+    <div class="stat"><b>7</b><span>cases</span></div>
+    <div class="stat"><b>9</b><span>breaking drifts</span></div>
+    <div class="stat"><b>5</b><span>value differences</span></div>
     <div class="stat"><b>1</b><span>unstable endpoints</span></div>
   </div>
   <div class="meta">
     <div>baseline &nbsp;<code>http://127.0.0.1:8799/legacy</code></div>
     <div>candidate <code>http://127.0.0.1:8799/next</code></div>
-    <div>run <code>20260912T071101Z-c7233c</code> · finished 2026-09-12T07:11:01Z · chain <code>2fb7257c36dfa89b</code></div>
+    <div>run <code>20260912T220414Z-bd26c7</code> · finished 2026-09-12T22:04:14Z · chain <code>64d522b982d93735</code></div>
   </div>
 </div>
 
@@ -148,6 +148,16 @@ footer { margin-top: 40px; font-size: 12px; color: var(--muted); }
   <td>FLAKY_STATUS</td>
 </tr>
 <tr class="detail"><td colspan="7"><p class="err">parity comparison skipped: candidate is FLAKY_STATUS across 3 identical calls. Stabilise the endpoint before trusting any diff taken from it.</p><h4>Stability &mdash; candidate</h4><p><code>FLAKY_STATUS</code> over 3 calls: status varied across identical calls: [200, 503]</p></td></tr>
+<tr class="v-fail">
+  <td><span class="badge fail">FAIL</span></td>
+  <td><code>GQL-001</code><div class="muted">GraphQL product query keeps its shape and returns no errors</div></td>
+  <td>REQ-GQL-01</td>
+  <td>critical</td>
+  <td>4 <b>(2 breaking)</b></td>
+  <td>1</td>
+  <td>STABLE</td>
+</tr>
+<tr class="detail"><td colspan="7"><h4>Failed assertions</h4><ul><li><code>graphql_errors</code> &mdash; the response carries GraphQL errors: Cannot resolve field &#x27;stock&#x27; on type &#x27;Product&#x27;</li></ul><h4>Contract drift</h4><table class="inner"><thead><tr><th>Severity</th><th>Kind</th><th>Path</th><th>Detail</th></tr></thead><tbody><tr><td><span class="sev breaking">breaking</span></td><td><code>TYPE_CHANGED</code></td><td><code>$.data.products[].price</code></td><td>incompatible type change ([&#x27;number&#x27;] -&gt; [&#x27;string&#x27;])</td></tr><tr><td><span class="sev breaking">breaking</span></td><td><code>FIELD_REMOVED</code></td><td><code>$.data.products[].stock</code></td><td>present in baseline but absent from candidate (was always present)</td></tr><tr><td><span class="sev additive">additive</span></td><td><code>FIELD_ADDED</code></td><td><code>$.data.products[].internalCost</code></td><td>new in candidate; harmless for consumers that ignore unknown fields</td></tr><tr><td><span class="sev additive">additive</span></td><td><code>FIELD_ADDED</code></td><td><code>$.data.products[].warehouseId</code></td><td>new in candidate; harmless for consumers that ignore unknown fields</td></tr></tbody></table><h4>Value differences</h4><table class="inner"><thead><tr><th>Kind</th><th>Path</th><th>Baseline</th><th>Candidate</th></tr></thead><tbody><tr><td><code>EXTRA_IN_CANDIDATE</code></td><td><code>$.errors</code></td><td><code>None</code></td><td><code>[{&quot;message&quot;: &quot;Cannot resolve field &#x27;stock&#x27; on type &#x27;Product&#x27;&quot;}]</code></td></tr></tbody></table><p class="muted">8 further difference(s) folded away: they restate the contract drift above.</p></td></tr>
 </tbody></table></div>
 
 <h2>Traceability</h2>
@@ -157,6 +167,7 @@ footer { margin-top: 40px; font-size: 12px; color: var(--muted); }
 <tr><td>REQ-CAT-01</td><td><code>CAT-001</code></td><td><span class="badge fail">FAIL</span></td></tr>
 <tr><td>REQ-CAT-02</td><td><code>CAT-002</code></td><td><span class="badge pass">PASS</span></td></tr>
 <tr><td>REQ-CAT-03</td><td><code>CAT-003</code></td><td><span class="badge fail">FAIL</span></td></tr>
+<tr><td>REQ-GQL-01</td><td><code>GQL-001</code></td><td><span class="badge fail">FAIL</span></td></tr>
 <tr><td>REQ-OPS-01</td><td><code>OPS-001</code></td><td><span class="badge warn">WARN</span></td></tr>
 <tr><td>REQ-OPS-02</td><td><code>OPS-002</code></td><td><span class="badge warn">WARN</span></td></tr>
 <tr><td>REQ-SEC-01</td><td><code>SEC-001</code></td><td><span class="badge fail">FAIL</span></td></tr>

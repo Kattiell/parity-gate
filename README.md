@@ -123,6 +123,59 @@ and classifies what varied, so the two get separated:
 No assertions are evaluated here. It measures the endpoints, not your
 expectations.
 
+### GraphQL, without lying about what is a read
+
+A GraphQL endpoint is JSON over HTTP, so everything above applies — but two
+things HTTP gives for free are missing, and both need handling rather than
+ignoring.
+
+```toml
+[[cases]]
+id = "GQL-001"
+path = "/graphql"
+graphql = """
+query Products { products { id title price stock } }
+"""
+```
+
+**Every operation is a POST.** If the write gate went by method, every query
+would have to be declared a mutation, and a safety control everyone switches
+off protects nothing. The operation type is read from the document instead: a
+`query` runs as a read, a `mutation` still needs `mutating = true` *and*
+`--allow-mutations`.
+
+**Every response is 200**, including the failures — so the check that catches a
+`404` softened into a `200` has nothing to work with here. The equivalent
+signal is the `errors` array, and it is checked explicitly:
+
+```
+FAIL  GQL-001   Product query keeps its shape   - 2 breaking drift; failed: graphql_errors
+
+- `graphql_errors`: the response carries GraphQL errors:
+  Cannot resolve field 'stock' on type 'Product'
+
+| breaking | TYPE_CHANGED  | $.data.products[].price | ['number'] -> ['string'] |
+| breaking | FIELD_REMOVED | $.data.products[].stock | was always present       |
+```
+
+A status-based check would have called that run green.
+
+### Already have an OpenAPI spec?
+
+Then the endpoint list is written down already, and typing it into TOML is the
+largest piece of friction in adopting any gate:
+
+```bash
+parity-gate import-openapi --spec https://api.example.com/openapi.json \
+                           --out suites/api.toml
+```
+
+Reads JSON (what FastAPI, Spring and Swagger UI serve live), emits a case per
+safe operation, uses the `example` from each path parameter, and **comments out
+the cases it cannot fill in rather than inventing an id** — a case that fails
+for the wrong reason is worse than one that does not run. Writes are left out
+unless you pass `--include-writes`.
+
 ### 3. Prove a rewrite matches the service it replaces
 
 The migration case: two live services, same requests, honest comparison.
@@ -147,7 +200,7 @@ pip install -e ".[dev]"
 parity-gate demo --mode contract         # gate against a recorded contract
 parity-gate demo --mode stability        # measure the noise
 parity-gate demo                         # differential, two live services
-pytest -q                                # 180 tests, no network
+pytest -q                                # 213 tests, no network
 ```
 
 All of it runs against a bundled mock that serves a catalogue API twice — once
@@ -387,6 +440,7 @@ model in [SECURITY.md](SECURITY.md); the controls:
 parity-gate record    --suite FILE [--out PATH] [--from URL]   # capture today's shape
 parity-gate run       --suite FILE [--strict] [--evidence DIR] # gate against it
 parity-gate stability --suite FILE                             # measure the noise
+parity-gate import-openapi --spec SPEC --out FILE               # a suite from a spec
 parity-gate verify    DIR                                      # re-check an evidence bundle
 parity-gate scan      PATH...                                  # fail on a credential in a file
 parity-gate demo      [--mode MODE]                            # offline, bundled mock
@@ -414,6 +468,8 @@ and installing it should pull nothing.
 | --- | --- |
 | `schema.py` | Infer a contract from samples; classify drift by consumer impact |
 | `contracts.py` | Record, store and reload a contract as a reviewable file |
+| `graphql.py` | Operation type from the document; errors as the missing status code |
+| `openapi.py` | A starter suite from a spec, with what it cannot fill in commented out |
 | `differ.py` | Value diff with masking, identity matching and ordering as one finding |
 | `flaky.py` | Stability triage and automatic mask suggestion |
 | `safety.py` | Host allow-list, production guard, write gating, secret scan |
@@ -424,7 +480,7 @@ and installing it should pull nothing.
 | `runner.py` | Orchestration and the verdict rules for all three modes |
 | `mock/server.py` | The two-headed demo API, deterministic down to the flaky endpoint |
 
-**180 tests**, unit and integration, offline. The CI matrix is configured for
+**213 tests**, unit and integration, offline. The CI matrix is configured for
 Python 3.11–3.13 on Linux and Windows; the badge at the top is the honest answer
 to whether it is currently green.
 
@@ -456,6 +512,28 @@ including the findings that were **not** fixed — is in
   [BUG-002](docs/bugs/BUG-002-missing-product-returns-200.md) ·
   [BUG-003](docs/bugs/BUG-003-internal-cost-exposed.md)
 
+## When to use something else
+
+The honest map, because a tool that claims to cover everything is easy to catch
+out and hard to trust afterwards.
+
+| If you have | Use | Why |
+| --- | --- | --- |
+| A maintained OpenAPI spec and you want the implementation checked against it | **Schemathesis**, **Dredd** | They answer "does the code match the spec". This answers "did the code change" — the spec is not the oracle here, yesterday's behaviour is. `import-openapi` gets you a suite from the spec, and then the two descriptions can be compared |
+| Consumers who can publish their expectations | **Pact** | Consumer-driven contracts are a stronger guarantee: they encode what each consumer actually uses. They also need every consumer to cooperate and a broker to run. This needs neither, and gives you less |
+| Budget and a team that wants API diffing as a product | **Optic** | Adjacent ground, more mature, commercial. This is a CLI with no dependencies and an evidence trail built for a QA workflow |
+| gRPC or Protobuf | **buf breaking**, **Protolock** | Schema-first by construction; the breaking-change check belongs in the schema toolchain, not here |
+| Long-lived streams — websockets, SSE, GraphQL subscriptions | Something else | Not supported, and a subscription is refused at load time with that reason rather than half-working |
+
+Where this earns its place: **one API, real consumers, and no spec anyone
+trusts.** No broker, no code generation, no consumer cooperation, nothing to
+install. One TOML file and `record`.
+
+And the second reason, which is the QA half rather than the dev half: the
+output is built to survive a ticket. A hash-chained bundle, a requirement
+traceability matrix, and a report that names the consumer consequence rather
+than printing a diff.
+
 ## Limits
 
 Worth stating plainly, because a tool that oversells itself gets trusted in the
@@ -470,7 +548,11 @@ wrong places:
   frequent flakiness, not flakiness on a slower period than that.
 - **Redaction is pattern-based.** A secret in a format nobody has seen survives
   it. Read evidence before attaching it to a public issue.
-- **GraphQL, gRPC and streaming are out of scope.** It speaks JSON over HTTP.
+- **gRPC and long-lived streams are out of scope.** It speaks JSON over HTTP;
+  GraphQL is supported, subscriptions are not.
+- **A recorded contract is only shape.** Two services that agree on every type
+  and disagree on every value both pass contract mode. Values are compared only
+  in differential mode, where there is a live oracle to compare against.
 
 ## Licence
 

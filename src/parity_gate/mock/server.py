@@ -140,6 +140,37 @@ class _Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args: Any) -> None:
         return
 
+    def do_POST(self) -> None:
+        """Only /graphql, which is the whole point: one URL, one method, and
+        the operation type hidden inside the body."""
+        parts = urlsplit(self.path)
+        segments = [s for s in parts.path.split("/") if s]
+        if len(segments) != 2 or segments[0] not in {LEGACY, NEXT} or segments[1] != "graphql":
+            return self._send(404, {"error": "no such endpoint", "path": parts.path})
+
+        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            document = json.loads(self.rfile.read(length) or b"{}").get("query", "")
+        except json.JSONDecodeError:
+            return self._send(400, {"errors": [{"message": "malformed request body"}]})
+
+        if "createOrder" in document:
+            return self._send(200, {"data": {"createOrder": {"id": 99, "status": "placed"}}})
+
+        products = [_legacy_product(p) for p in PRODUCTS[:2]]
+        if segments[0] == LEGACY:
+            return self._send(200, {"data": {"products": products}})
+
+        # The rewrite, with the same defects the REST side has -- plus the one
+        # that only GraphQL can have: a 200 carrying partial data and an error.
+        return self._send(
+            200,
+            {
+                "data": {"products": [_next_product(p) for p in PRODUCTS[:2]]},
+                "errors": [{"message": "Cannot resolve field 'stock' on type 'Product'"}],
+            },
+        )
+
     def do_GET(self) -> None:
         parts = urlsplit(self.path)
         segments = [s for s in parts.path.split("/") if s]

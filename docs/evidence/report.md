@@ -2,12 +2,12 @@
 
 **Verdict: FAIL**
 
-- Run `20260912T071101Z-c7233c` finished 2026-09-12T07:11:01Z
+- Run `20260912T220414Z-bd26c7` finished 2026-09-12T22:04:14Z
 - Baseline `http://127.0.0.1:8799/legacy`
 - Candidate `http://127.0.0.1:8799/next`
-- 6 case(s): 1 PASS, 2 WARN, 3 FAIL
-- 7 breaking contract change(s), 4 value difference(s), 1 unstable endpoint(s)
-- Evidence chain head `2fb7257c36dfa89b`
+- 7 case(s): 1 PASS, 2 WARN, 4 FAIL
+- 9 breaking contract change(s), 5 value difference(s), 1 unstable endpoint(s)
+- Evidence chain head `64d522b982d93735`
 
 ## Cases
 
@@ -19,6 +19,7 @@
 | FAIL | `SEC-001` Internal cost data is never exposed on the public catalogue | REQ-SEC-01 | critical | 4 (2 breaking) | 2 | STABLE |
 | WARN | `OPS-001` Health endpoint answers and reports uptime | REQ-OPS-01 | low | 0 | 0 | VOLATILE_BODY |
 | WARN | `OPS-002` Inventory sync status is stable enough to be compared at all | REQ-OPS-02 | medium | 0 | 0 | FLAKY_STATUS |
+| FAIL | `GQL-001` GraphQL product query keeps its shape and returns no errors | REQ-GQL-01 | critical | 4 (2 breaking) | 1 | STABLE |
 
 ## Findings
 
@@ -112,6 +113,31 @@ mask_paths = [
 
 **Stability (candidate)**: `FLAKY_STATUS` over 3 calls — status varied across identical calls: [200, 503]
 
+### FAIL `GQL-001` — GraphQL product query keeps its shape and returns no errors
+
+`POST /graphql` · requirement REQ-GQL-01 · risk critical
+
+**Failed assertions**
+
+- `graphql_errors`: the response carries GraphQL errors: Cannot resolve field 'stock' on type 'Product'
+
+**Contract drift**
+
+| Severity | Kind | Path | Detail |
+| --- | --- | --- | --- |
+| breaking | `TYPE_CHANGED` | `$.data.products[].price` | incompatible type change (['number'] -> ['string']) |
+| breaking | `FIELD_REMOVED` | `$.data.products[].stock` | present in baseline but absent from candidate (was always present) |
+| additive | `FIELD_ADDED` | `$.data.products[].internalCost` | new in candidate; harmless for consumers that ignore unknown fields |
+| additive | `FIELD_ADDED` | `$.data.products[].warehouseId` | new in candidate; harmless for consumers that ignore unknown fields |
+
+**Value differences**
+
+| Kind | Path | Baseline | Candidate |
+| --- | --- | --- | --- |
+| `EXTRA_IN_CANDIDATE` | `$.errors` | `None` | `[{"message": "Cannot resolve field 'stock' on type 'Product'"}]` |
+
+_8 further value difference(s) are folded away: they are restatements of the contract drift listed above._
+
 ## Traceability
 
 | Requirement | Cases | Worst verdict |
@@ -119,6 +145,7 @@ mask_paths = [
 | REQ-CAT-01 | `CAT-001` | FAIL |
 | REQ-CAT-02 | `CAT-002` | PASS |
 | REQ-CAT-03 | `CAT-003` | FAIL |
+| REQ-GQL-01 | `GQL-001` | FAIL |
 | REQ-OPS-01 | `OPS-001` | WARN |
 | REQ-OPS-02 | `OPS-002` | WARN |
 | REQ-SEC-01 | `SEC-001` | FAIL |

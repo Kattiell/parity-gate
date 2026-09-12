@@ -128,10 +128,21 @@ def check_url(url: str, policy: Policy) -> None:
         )
 
 
-def check_method(method: str, *, mutating: bool, policy: Policy) -> None:
-    """Refuse a write unless both the case and the run opted in."""
+def check_method(
+    method: str, *, mutating: bool, policy: Policy, reads_only: bool = False
+) -> None:
+    """Refuse a write unless both the case and the run opted in.
+
+    ``reads_only`` exists for GraphQL, where every operation is a POST and the
+    method therefore says nothing about whether anything changes. The caller
+    establishes that from the query document instead; see
+    :mod:`parity_gate.graphql`. It is the one place a POST is treated as a
+    read, and it is deliberate rather than a loophole: without it every
+    GraphQL query would have to be declared a mutation, and a gate everyone
+    switches off protects nothing.
+    """
     method = method.upper()
-    if method in SAFE_METHODS:
+    if reads_only or method in SAFE_METHODS:
         return
     if not mutating:
         raise SafetyError(

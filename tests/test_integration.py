@@ -23,6 +23,7 @@ from parity_gate.contracts import ContractError, save
 from parity_gate.evidence import FAIL, PASS, WARN, verify
 from parity_gate.mock import MockServer, start
 from parity_gate.runner import Runner
+from parity_gate.safety import SafetyError
 from parity_gate.suite import SuiteError, load
 
 SUITE = """
@@ -541,3 +542,87 @@ def test_a_filter_that_matches_nothing_names_the_available_cases(
     )
     assert code == 1
     assert "CAT-001" in capsys.readouterr().err
+
+
+# -- GraphQL: one URL, one method, no status code worth reading --------------
+
+GQL_SUITE = """
+name = "graphql"
+[targets.baseline]
+base_url = "{base}/legacy"
+[targets.candidate]
+base_url = "{base}/next"
+[policy]
+allowed_hosts = ["127.0.0.1"]
+allow_private_networks = true
+repeats = 2
+[[cases]]
+id = "GQL-001"
+requirement = "REQ-GQL-01"
+title = "Product query keeps its shape"
+risk = "critical"
+path = "/graphql"
+graphql = "query Products {{ products {{ id title price stock }} }}"
+"""
+
+
+def test_a_graphql_query_runs_without_the_mutation_gate(
+    tmp_path: Path, mock: MockServer
+) -> None:
+    """Every GraphQL operation is a POST. If the write gate went by method,
+    this run would be refused and every query would have to lie about being a
+    mutation."""
+    target = tmp_path / "gql.toml"
+    target.write_text(GQL_SUITE.format(base=mock.base_url), encoding="utf-8")
+
+    record = Runner(load(target)).execute().records[0]
+    assert record.error is None
+    assert record.case["method"] == "POST"
+    assert record.case["graphql"] == "query"
+
+
+def test_errors_in_a_200_are_caught_where_no_status_check_could(
+    tmp_path: Path, mock: MockServer
+) -> None:
+    """The GraphQL equivalent of a 404 softened into a 200: the failure is in
+    the body, and every status-based check reports success."""
+    target = tmp_path / "gql.toml"
+    target.write_text(GQL_SUITE.format(base=mock.base_url), encoding="utf-8")
+
+    record = Runner(load(target)).execute().records[0]
+    assert record.candidate["status"] == 200  # nothing in the status says anything
+    failed = {c["name"]: c for c in record.checks if not c["passed"]}
+    assert "graphql_errors" in failed
+    assert "Cannot resolve field" in failed["graphql_errors"]["detail"]
+    assert record.verdict == FAIL
+
+
+def test_drift_is_reported_under_data_and_errors_are_not_duplicated(
+    tmp_path: Path, mock: MockServer
+) -> None:
+    target = tmp_path / "gql.toml"
+    target.write_text(GQL_SUITE.format(base=mock.base_url), encoding="utf-8")
+
+    record = Runner(load(target)).execute().records[0]
+    drifts = {d["path"]: d for d in record.drifts}
+    assert drifts["$.data.products[].price"]["kind"] == "TYPE_CHANGED"
+    assert drifts["$.data.products[].stock"]["kind"] == "FIELD_REMOVED"
+    # The dedicated check owns `$.errors`; repeating it as "additive; harmless"
+    # would have the report contradict itself.
+    assert not any(path.startswith("$.errors") for path in drifts)
+
+
+def test_a_graphql_mutation_still_needs_both_switches(
+    tmp_path: Path, mock: MockServer
+) -> None:
+    body = GQL_SUITE.format(base=mock.base_url).replace(
+        "graphql = \"query Products { products { id title price stock } }\"",
+        'graphql = "mutation { createOrder { id status } }"',
+    )
+    target = tmp_path / "mut.toml"
+    target.write_text(body, encoding="utf-8")
+
+    # Refused in preflight, before a single packet: a mutation is a write
+    # whatever the transport calls it.
+    with pytest.raises(SafetyError, match="not marked `mutating = true`"):
+        Runner(load(target)).execute()

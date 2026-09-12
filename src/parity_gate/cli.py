@@ -22,7 +22,7 @@ import sys
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from parity_gate import __version__, contracts, evidence, report
+from parity_gate import __version__, contracts, evidence, openapi, report
 from parity_gate import suite as suite_module
 from parity_gate.evidence import ERROR, FAIL, PASS, WARN
 from parity_gate.runner import ContractRecordingError, Runner
@@ -148,6 +148,27 @@ def _parser() -> argparse.ArgumentParser:
     stability.add_argument("--keep", type=int, default=None, metavar="N", help=_KEEP_HELP)
     stability.add_argument("--quiet", action="store_true")
     stability.set_defaults(handler=_cmd_stability)
+
+    importer = sub.add_parser(
+        "import-openapi",
+        help="generate a starter suite from an OpenAPI document (JSON)",
+    )
+    importer.add_argument(
+        "--spec", required=True, help="path to an OpenAPI JSON file, or an http(s) URL"
+    )
+    importer.add_argument("--out", required=True, type=Path, help="suite file to write")
+    importer.add_argument(
+        "--base-url",
+        default="",
+        help="address to test against; defaults to the first server in the document",
+    )
+    importer.add_argument(
+        "--include-writes",
+        action="store_true",
+        help="also emit POST/PUT/PATCH/DELETE cases, marked mutating",
+    )
+    importer.add_argument("--force", action="store_true", help="overwrite an existing suite")
+    importer.set_defaults(handler=_cmd_import_openapi)
 
     verify = sub.add_parser("verify", help="re-check an evidence bundle against its hash chain")
     verify.add_argument("directory", type=Path)
@@ -467,6 +488,70 @@ def _mask_suggestions(run) -> list[str]:  # type: ignore[no-untyped-def]
             if isinstance(side, dict):
                 found.update(side.get("volatile_paths") or [])
     return sorted(found)
+
+
+def _cmd_import_openapi(args: argparse.Namespace) -> int:
+    destination = Path(args.out)
+    if destination.exists() and not args.force:
+        _err(f"{destination} already exists; pass --force to overwrite it")
+        return EXIT_USAGE
+
+    try:
+        text, origin = _read_spec(args.spec)
+        spec = openapi.load_spec(text, origin)
+        contract = f"contracts/{destination.stem}.json"
+        suite_text = openapi.to_suite(
+            spec,
+            name=destination.stem,
+            base_url=args.base_url,
+            contract_path=contract,
+            include_writes=args.include_writes,
+        )
+    except openapi.OpenAPIError as exc:
+        _err(str(exc))
+        return EXIT_USAGE
+    except SafetyError as exc:
+        _err(f"refused: {exc}")
+        return EXIT_REFUSED
+    except OSError as exc:
+        _err(f"could not read {args.spec}: {exc}")
+        return EXIT_USAGE
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(suite_text, encoding="utf-8", newline="\n")
+
+    ready = suite_text.count("\n[[cases]]") + suite_text.startswith("[[cases]]")
+    todo = suite_text.count("# TODO:")
+    print(f"suite     {destination}")
+    print(f"cases     {ready} ready" + (f", {todo} need a path parameter" if todo else ""))
+    print("\nRead it, delete what does not matter, then:")
+    print(f"    parity-gate stability --suite {destination}")
+    print(f"    parity-gate record    --suite {destination}")
+    return EXIT_OK
+
+
+def _read_spec(location: str) -> tuple[str, str]:
+    """Read a spec from disk, or over HTTP under the usual safety policy."""
+    if location.startswith(("http://", "https://")):
+        from parity_gate.httpclient import Client
+        from parity_gate.safety import Policy
+
+        host = urlsplit(location).hostname or ""
+        # Typing the URL is the authorisation; every other guard still applies.
+        policy = Policy(allowed_hosts=[host], allow_private_networks=True, timeout_seconds=30)
+        client = Client(policy)
+        try:
+            response = client.request("GET", location)
+        finally:
+            client.close()
+        if response.transport_error:
+            raise OSError(response.transport_error)
+        if response.status != 200:
+            raise OSError(f"the document answered {response.status}")
+        return response.body_text, location
+
+    path = Path(location)
+    return path.read_text(encoding="utf-8"), str(path)
 
 
 def _cmd_verify(args: argparse.Namespace) -> int:

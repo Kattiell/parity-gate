@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from parity_gate import contracts, evidence, flaky
+from parity_gate import contracts, evidence, flaky, graphql
 from parity_gate.differ import Difference, diff
 from parity_gate.evidence import ERROR, FAIL, PASS, WARN, Record, Run
 from parity_gate.httpclient import Client, Response
@@ -126,7 +126,12 @@ class Runner:
             # printed a header and looks like it is working.
             target.resolved_headers()
         for case in self.suite.cases:
-            check_method(case.method, mutating=case.mutating, policy=self.suite.policy)
+            check_method(
+                case.method,
+                mutating=case.mutating,
+                policy=self.suite.policy,
+                reads_only=case.reads_only,
+            )
             for target in live:
                 check_url(target.url_for(case.path), self.suite.policy)
 
@@ -196,7 +201,12 @@ class Runner:
         def measure_one(case: Case) -> Record:
             record = Record(case=case.to_dict(), verdict=PASS)
             try:
-                check_method(case.method, mutating=case.mutating, policy=self.suite.policy)
+                check_method(
+                case.method,
+                mutating=case.mutating,
+                policy=self.suite.policy,
+                reads_only=case.reads_only,
+            )
                 probe = self._probe(self.suite.candidate, case)
             except SafetyError as exc:
                 record.verdict = ERROR
@@ -264,7 +274,12 @@ class Runner:
 
         recorded = self.contract.cases.get(case.id)
         try:
-            check_method(case.method, mutating=case.mutating, policy=self.suite.policy)
+            check_method(
+                case.method,
+                mutating=case.mutating,
+                policy=self.suite.policy,
+                reads_only=case.reads_only,
+            )
             candidate = self._probe(self.suite.candidate, case)
         except SafetyError as exc:
             record.verdict = ERROR
@@ -307,6 +322,7 @@ class Runner:
             return record
 
         drifts, unchecked = compare(recorded.schema, candidate.schema)
+        drifts = _fold_graphql_errors(drifts, case)
         record.drifts = [d.to_dict() for d in drifts]
         record.unchecked_paths = unchecked
         record.schema = {
@@ -330,7 +346,12 @@ class Runner:
         record = Record(case=case.to_dict(), verdict=PASS)
 
         try:
-            check_method(case.method, mutating=case.mutating, policy=self.suite.policy)
+            check_method(
+                case.method,
+                mutating=case.mutating,
+                policy=self.suite.policy,
+                reads_only=case.reads_only,
+            )
             baseline = self._probe(self.suite.baseline, case)
             candidate = self._probe(self.suite.candidate, case)
         except SafetyError as exc:
@@ -371,6 +392,7 @@ class Runner:
             return record
 
         drifts, unchecked = compare(baseline.schema, candidate.schema)
+        drifts = _fold_graphql_errors(drifts, case)
         record.drifts = [d.to_dict() for d in drifts]
         record.unchecked_paths = unchecked
         record.schema = {
@@ -400,7 +422,9 @@ class Runner:
 
         for _ in range(self.suite.repeats_for(case)):
             probe.responses.append(
-                self.client.request(case.method, url, headers=headers, body=case.body)
+                self.client.request(
+                    case.method, url, headers=headers, body=case.request_body()
+                )
             )
 
         payloads = [r.json_body for r in probe.responses]
@@ -469,6 +493,21 @@ class Runner:
                     f"{forbidden} must not be exposed but is present",
                 )
             )
+
+        if case.is_graphql:
+            found = graphql.errors_in(response.json_body)
+            if case.expect_graphql_errors:
+                results.append(
+                    _check("graphql_errors", bool(found), "expected GraphQL errors, got none")
+                )
+            else:
+                results.append(
+                    _check(
+                        "graphql_errors",
+                        not found,
+                        f"the response carries GraphQL errors: {graphql.describe(found)}",
+                    )
+                )
 
         if case.max_latency_ms is not None and candidate.stability:
             p50 = candidate.stability.p50_ms
@@ -551,6 +590,20 @@ def _status_contract_checks(
             f"recorded contract answers {recorded.statuses}, this run answered {seen}",
         )
     ]
+
+
+def _fold_graphql_errors(drifts: list[Any], case: Case) -> list[Any]:
+    """Drop drift findings about ``$.errors`` on a GraphQL case.
+
+    The dedicated `graphql_errors` check already reports them, and reports them
+    correctly. Leaving them in the drift table as well makes the report say two
+    contradictory things about the same fact -- "additive; harmless for
+    consumers that ignore unknown fields" next to a failed assertion about
+    exactly that field.
+    """
+    if not case.is_graphql:
+        return drifts
+    return [d for d in drifts if not d.path.startswith("$.errors")]
 
 
 #: Which value-level difference each contract-drift finding already explains.

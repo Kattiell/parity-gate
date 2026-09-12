@@ -98,3 +98,18 @@ risk = "medium"
 method = "GET"
 path = "/inventory/sync-status"
 expect_status = 200
+
+[[cases]]
+id = "GQL-001"
+requirement = "REQ-GQL-01"
+title = "GraphQL product query keeps its shape and returns no errors"
+risk = "critical"
+path = "/graphql"
+# No `method`: a GraphQL case is always a POST. It still runs without
+# --allow-mutations, because the operation type is read from the document
+# rather than guessed from the transport.
+graphql = """
+query Products {
+  products { id title price stock }
+}
+"""
