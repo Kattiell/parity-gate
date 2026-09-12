@@ -1,0 +1,109 @@
+# Copy this file, change the three marked lines, and you have a contract gate.
+#
+#   cp suites/example-api.toml suites/my-api.toml
+#   parity-gate record --suite suites/my-api.toml     # capture today's shape
+#   git add suites/my-api.toml suites/contracts/       # review it, commit it
+#   parity-gate run --suite suites/my-api.toml         # every deploy, in CI
+#
+# As shipped it points at a public demo API, so you can run it once unchanged
+# and watch the whole cycle work before trusting it with anything of yours.
+
+name = "example-api"
+description = "Starter suite. Replace the target and the cases with your own."
+
+# --- CHANGE 1: where the recorded contract lives ---------------------------
+# Relative to this file. It does not exist yet; `record` creates it.
+[targets.baseline]
+snapshot = "contracts/example-api.json"
+
+# --- CHANGE 2: your API -----------------------------------------------------
+[targets.candidate]
+base_url = "https://dummyjson.com"
+# If it needs a credential, name the environment variable — never the value:
+# auth = "env:MY_API_TOKEN"
+
+[policy]
+# --- CHANGE 3: the hosts this suite may reach -------------------------------
+# Mandatory, and there is no implicit allow-all. ".example.com" (with the dot)
+# matches any subdomain; "api.example.com" matches that host exactly.
+allowed_hosts = ["dummyjson.com"]
+
+# How many times each endpoint is called before its shape is inferred. Three is
+# enough to tell "always present" from "present this time"; raise it for an API
+# you suspect of being inconsistent.
+repeats = 3
+
+timeout_seconds = 15
+
+# Retries are off on purpose: retrying a 503 turns an endpoint that fails one
+# call in three into one that looks healthy, and that is the signal you want.
+max_retries = 0
+
+# Cases run one at a time by default. Raise it only when you know the target can
+# take it — it is somebody's staging environment.
+# workers = 4
+
+# Values that move on every call by definition. Run `parity-gate stability`
+# first and it prints this block for you, filled in.
+# mask_paths = ["$.meta.requestId", "$.generatedAt"]
+
+# Compare collections by identity instead of by position, so a page returned in
+# a different order is one finding rather than one per field of every item.
+[policy.array_keys]
+"$.products" = "id"
+
+# --- your cases -------------------------------------------------------------
+# One per request worth protecting. Start with the three or four endpoints whose
+# breakage would wake somebody up, not with all of them.
+
+[[cases]]
+id = "PROD-001"
+requirement = "REQ-CATALOG-01"      # feeds the traceability matrix in the report
+title = "Product listing keeps its pagination envelope"
+risk = "critical"                   # low | medium | high | critical
+method = "GET"
+path = "/products?limit=5"
+# Fields that must exist. The recorded contract already guards their *types*;
+# this is for the handful you want named explicitly in the report.
+required_fields = ["$.products", "$.total", "$.skip", "$.limit"]
+max_latency_ms = 5000
+
+[[cases]]
+id = "PROD-002"
+requirement = "REQ-CATALOG-02"
+title = "Product detail"
+risk = "high"
+method = "GET"
+path = "/products/1"
+
+[[cases]]
+id = "PROD-003"
+requirement = "REQ-CATALOG-03"
+title = "An unknown id answers with an error, not an empty success"
+risk = "high"
+method = "GET"
+path = "/products/999999"
+# No expect_status here on purpose: `record` remembers which status this
+# endpoint answered with, so a 404 that later becomes a 200 is caught without
+# anyone having predicted that particular change.
+
+# A denial assertion. Positive checks can never catch a serialiser that starts
+# exposing a column nobody meant to publish — only naming the field can.
+# [[cases]]
+# id = "SEC-001"
+# requirement = "REQ-SEC-01"
+# title = "Internal pricing is never exposed publicly"
+# risk = "critical"
+# method = "GET"
+# path = "/products?limit=5"
+# forbidden_fields = ["$.products[].internalCost", "$.products[].margin"]
+
+# Writes need two switches: `mutating = true` here, and --allow-mutations on the
+# run. One of them alone does nothing.
+# [[cases]]
+# id = "ORD-001"
+# title = "Creating an order"
+# method = "POST"
+# path = "/orders"
+# mutating = true
+# body = { productId = 1, quantity = 2 }

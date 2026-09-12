@@ -66,9 +66,10 @@ signal-to-noise ratio**, not in the diff.
 The common case: one API, real consumers, no rewrite in sight.
 
 ```bash
-parity-gate record --suite suites/api.toml     # once — writes contracts/api.json
-git add contracts/api.json                     # review it, commit it
-parity-gate run --suite suites/api.toml        # every deploy, in CI
+cp suites/example-api.toml suites/my-api.toml  # a commented starter suite
+parity-gate record --suite suites/my-api.toml  # once — captures today's shape
+git add suites/my-api.toml suites/contracts/   # review the contract, commit it
+parity-gate run --suite suites/my-api.toml     # every deploy, in CI
 ```
 
 The recorded contract holds **types, requiredness and the status codes each
@@ -162,6 +163,64 @@ parity-gate run --suite suites/live-self-parity.toml
 That one compares a live public API **against itself**. It should come back all
 green, and that is the point: it is the control experiment. Whatever it reports
 as volatile is noise you would otherwise have chased.
+
+## Point it at your own API — about five minutes
+
+The demo proves the tool works. This is the part that makes it yours. There is
+no code to write: the whole configuration is one TOML file.
+
+```bash
+cp suites/example-api.toml suites/my-api.toml
+```
+
+[`suites/example-api.toml`](suites/example-api.toml) is a commented starter that
+works unchanged against a public demo API, so you can run the full cycle once
+before trusting it with anything of yours. Three lines to change, all marked in
+the file: where the contract file goes, your `base_url`, and `allowed_hosts`.
+
+**1. Find out what you can trust before you assert anything.**
+
+```bash
+parity-gate stability --suite suites/my-api.toml
+```
+
+It calls each endpoint three times and tells you which ones answer differently
+to identical calls. If it prints a `mask_paths` block, paste it into `[policy]`:
+those are the fields that move on their own, and diffing them is how a gate
+becomes noise. Fix anything reported `FLAKY_STATUS` before going further —
+nothing measured from an endpoint like that means anything.
+
+**2. Record the shape it has today.**
+
+```bash
+parity-gate record --suite suites/my-api.toml
+```
+
+Read the file it writes. It is one field per line precisely so you can: this is
+the moment to notice that something you thought was required is optional, or
+that a field you meant to remove last quarter is still there. Then commit it.
+
+**3. Gate on it.**
+
+```bash
+parity-gate run --suite suites/my-api.toml --strict
+```
+
+Exit code `2` stops a pipeline. In CI:
+
+```yaml
+- name: API contract gate
+  run: parity-gate run --suite suites/my-api.toml --strict --keep 20
+  env:
+    MY_API_TOKEN: ${{ secrets.STAGING_TOKEN }}
+```
+
+**4. When it fails, read `report.md` in the evidence directory** — it names the
+path, the severity, and what a consumer would experience. If the change was
+intended, re-record and commit the new contract; the diff is the review.
+
+Working on one endpoint? `--filter 'PROD-*'` or `--filter REQ-CATALOG-01`
+narrows the run without editing the suite.
 
 ## How the noise is handled
 
