@@ -69,6 +69,44 @@ def render_path(path: Path) -> str:
     return out
 
 
+def parse_path(display: str) -> Path:
+    """Inverse of :func:`render_path`.
+
+    A recorded contract gets committed and reviewed in pull requests, so it
+    stores the readable spelling (``$.products[].price``) rather than nested
+    arrays of segments. That only works if the spelling round-trips exactly,
+    which is what this does — and what ``test_schema`` pins.
+    """
+    if not display.startswith("$"):
+        raise ValueError(f"path must start with '$': {display!r}")
+
+    segments: list[Segment] = []
+    index = 1
+    decoder = json.JSONDecoder()
+
+    while index < len(display):
+        char = display[index]
+        if char == ".":
+            end = index + 1
+            while end < len(display) and display[end] not in ".[":
+                end += 1
+            segments.append(("k", display[index + 1 : end]))
+            index = end
+        elif display.startswith("[]", index):
+            segments.append(("i",))
+            index += 2
+        elif char == "[":
+            key, end = decoder.raw_decode(display, index + 1)
+            if not isinstance(key, str) or end >= len(display) or display[end] != "]":
+                raise ValueError(f"malformed bracketed key in {display!r} at {index}")
+            segments.append(("k", key))
+            index = end + 1
+        else:
+            raise ValueError(f"unexpected character {char!r} in {display!r} at {index}")
+
+    return tuple(segments)
+
+
 @dataclass
 class Field:
     """What was observed at one path across one or more sample payloads."""
@@ -92,6 +130,10 @@ class Schema:
 
     fields: dict[Path, Field] = field(default_factory=dict)
     samples: int = 0
+    #: Set only when the schema was loaded from a recorded contract. Whether a
+    #: field was always present was decided at record time, from counts that no
+    #: longer exist, so it is carried rather than recomputed.
+    recorded_required: dict[Path, bool] | None = None
 
     def observe(self, value: Any) -> None:
         """Fold one more payload into the schema."""
@@ -118,6 +160,8 @@ class Schema:
         response, and treating a missing element as a removed field is the
         classic source of false alarms in contract diffs.
         """
+        if self.recorded_required is not None:
+            return self.recorded_required.get(path, False)
         if not path or path[-1][0] == "i":
             return True
         parent = self.fields.get(path[:-1])
@@ -144,6 +188,7 @@ class Schema:
         return digest.hexdigest()
 
     def to_dict(self) -> dict[str, Any]:
+        """Human-facing form, keyed by rendered path. Used in evidence files."""
         return {
             "samples": self.samples,
             "fingerprint": self.fingerprint(),
@@ -156,6 +201,41 @@ class Schema:
                 for path, entry in sorted(self.fields.items(), key=lambda kv: render_path(kv[0]))
             },
         }
+
+    def to_portable(self) -> dict[str, Any]:
+        """Lossless form that survives a round trip through a file.
+
+        ``to_dict`` renders paths for people and cannot be parsed back without
+        ambiguity, so a recorded contract keeps the raw segments alongside the
+        readable spelling.
+        """
+        return {
+            "samples": self.samples,
+            "fingerprint": self.fingerprint(),
+            "fields": [
+                {
+                    "path": render_path(path),
+                    "types": sorted(self.fields[path].type_names),
+                    "required": self.is_required(path),
+                }
+                for path in sorted(self.fields, key=render_path)
+            ],
+        }
+
+    @classmethod
+    def from_portable(cls, data: dict[str, Any]) -> Schema:
+        """Rebuild a schema previously written by :meth:`to_portable`."""
+        schema = cls(samples=int(data.get("samples", 0)))
+        schema.recorded_required = {}
+        for entry in data.get("fields", []):
+            path: Path = parse_path(entry["path"])
+            field_entry = Field(path=path)
+            for name in entry["types"]:
+                field_entry.types[name] = 1
+            field_entry.present = 1
+            schema.fields[path] = field_entry
+            schema.recorded_required[path] = bool(entry.get("required", False))
+        return schema
 
 
 def infer(*payloads: Any) -> Schema:

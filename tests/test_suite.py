@@ -132,3 +132,62 @@ def test_the_bundled_demo_suite_is_valid() -> None:
     assert len(suite.cases) >= 6
     assert suite.array_keys == {"$.products": "id"}
     assert suite.policy.allow_mutations is False
+
+
+SNAPSHOT_BASELINE = MINIMAL.replace(
+    '[targets.baseline]\nbase_url = "http://127.0.0.1:9/legacy"',
+    '[targets.baseline]\nsnapshot = "contracts/api.json"',
+)
+
+
+def test_the_baseline_may_be_a_recorded_contract(tmp_path: Path) -> None:
+    suite = load(write(tmp_path, SNAPSHOT_BASELINE))
+    assert suite.baseline.is_recorded
+    assert suite.baseline.label == "contracts/api.json"
+    assert suite.candidate.is_recorded is False
+
+
+def test_a_contract_path_resolves_against_the_suite_file_not_the_cwd(tmp_path: Path) -> None:
+    # So a suite directory can be checked out anywhere and still find its own
+    # contracts, whatever directory the command happens to be run from.
+    source = write(tmp_path, SNAPSHOT_BASELINE)
+    assert load(source).contract_path == tmp_path / "contracts" / "api.json"
+
+
+def test_a_live_baseline_has_no_contract_path(tmp_path: Path) -> None:
+    assert load(write(tmp_path, MINIMAL)).contract_path is None
+
+
+def test_a_target_cannot_be_both_live_and_recorded(tmp_path: Path) -> None:
+    body = MINIMAL.replace(
+        '[targets.baseline]\nbase_url = "http://127.0.0.1:9/legacy"',
+        '[targets.baseline]\nbase_url = "http://x"\nsnapshot = "contracts/api.json"',
+    )
+    with pytest.raises(SuiteError, match="not both"):
+        load(write(tmp_path, body))
+
+
+def test_a_target_with_neither_says_what_is_missing(tmp_path: Path) -> None:
+    body = MINIMAL.replace(
+        '[targets.baseline]\nbase_url = "http://127.0.0.1:9/legacy"',
+        "[targets.baseline]\n",
+    )
+    with pytest.raises(SuiteError, match=r"base_url .* or snapshot"):
+        load(write(tmp_path, body))
+
+
+def test_the_candidate_has_to_be_a_running_service(tmp_path: Path) -> None:
+    body = MINIMAL.replace(
+        '[targets.candidate]\nbase_url = "http://127.0.0.1:9/next"',
+        '[targets.candidate]\nsnapshot = "contracts/api.json"',
+    )
+    with pytest.raises(SuiteError, match=r"only targets\.baseline"):
+        load(write(tmp_path, body))
+
+
+def test_the_bundled_contract_guard_suite_is_valid() -> None:
+    root = Path(__file__).resolve().parent.parent
+    suite = load(root / "suites" / "demo-contract-guard.toml")
+    assert suite.baseline.is_recorded
+    assert suite.contract_path is not None
+    assert suite.contract_path.is_file(), "the demo contract should be committed"

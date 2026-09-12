@@ -21,10 +21,10 @@ import sys
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from parity_gate import __version__, evidence, report
+from parity_gate import __version__, contracts, evidence, report
 from parity_gate import suite as suite_module
 from parity_gate.evidence import ERROR, FAIL, PASS, WARN
-from parity_gate.runner import Runner
+from parity_gate.runner import ContractRecordingError, Runner
 from parity_gate.safety import SafetyError
 
 EXIT_OK = 0
@@ -91,6 +91,38 @@ def _parser() -> argparse.ArgumentParser:
     demo.add_argument("--quiet", action="store_true")
     demo.set_defaults(handler=_cmd_demo)
 
+    record = sub.add_parser(
+        "record",
+        help="capture the shape the API has today, to gate future deploys against",
+    )
+    record.add_argument("--suite", required=True, type=Path)
+    record.add_argument(
+        "--out",
+        type=Path,
+        default=None,
+        help="where to write the contract (default: the suite's targets.baseline.snapshot)",
+    )
+    record.add_argument(
+        "--from",
+        dest="source_url",
+        default=None,
+        help="record from this base URL instead of targets.candidate (still allow-listed)",
+    )
+    record.add_argument("--with-mock", action="store_true")
+    record.add_argument("--quiet", action="store_true")
+    record.set_defaults(handler=_cmd_record)
+
+    stability = sub.add_parser(
+        "stability",
+        help="measure how steady each endpoint is; assertions are not evaluated",
+    )
+    stability.add_argument("--suite", required=True, type=Path)
+    stability.add_argument("--evidence", type=Path, default=Path("evidence"))
+    stability.add_argument("--strict", action="store_true")
+    stability.add_argument("--with-mock", action="store_true")
+    stability.add_argument("--quiet", action="store_true")
+    stability.set_defaults(handler=_cmd_stability)
+
     verify = sub.add_parser("verify", help="re-check an evidence bundle against its hash chain")
     verify.add_argument("directory", type=Path)
     verify.set_defaults(handler=_cmd_verify)
@@ -136,41 +168,37 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
     server = None
     if args.with_mock:
-        from parity_gate.mock import start as start_mock
-
-        port = urlsplit(loaded.candidate.base_url).port or 8799
         try:
-            server = start_mock(port)
+            server = _start_mock(loaded, args.quiet)
         except OSError as exc:
-            _err(f"could not start the mock API on port {port}: {exc}")
+            _err(f"could not start the mock API: {exc}")
             return EXIT_USAGE
-        _say(f"mock api on {server.base_url}", args.quiet)
 
     try:
         runner = Runner(loaded, on_case=None if args.quiet else _print_case)
         headline = f"suite  {loaded.name}  ({len(loaded.cases)} cases, {loaded.repeats} repeats)"
         _say(headline, args.quiet)
-        _say(f"  baseline  {loaded.baseline.base_url}", args.quiet)
+        baseline_label = (
+            f"recorded contract {loaded.baseline.snapshot}"
+            if loaded.baseline.is_recorded
+            else loaded.baseline.base_url
+        )
+        _say(f"  baseline  {baseline_label}", args.quiet)
         _say(f"  candidate {loaded.candidate.base_url}\n", args.quiet)
         run = runner.execute()
     except SafetyError as exc:
         _err(f"refused before sending anything: {exc}")
         return EXIT_REFUSED
+    except contracts.ContractError as exc:
+        _err(str(exc))
+        return EXIT_USAGE
     except suite_module.SuiteError as exc:
         _err(str(exc))
         return EXIT_USAGE
     finally:
-        if server is not None:
-            server.shutdown()
-            server.server_close()
+        _stop_mock(server)
 
-    bundle = Path(args.evidence) / run.run_id
-    files = evidence.write_run(run, bundle)
-
-    files["report.md"] = evidence.write_text(bundle / "report.md", report.render_markdown(run))
-    files["report.html"] = evidence.write_text(bundle / "report.html", report.render_html(run))
-
-    evidence.write_manifest(bundle, files, run.chain_head, run.run_id)
+    bundle = _write_bundle(run, Path(args.evidence))
 
     summary = run.to_dict()["summary"]
     print()
@@ -192,6 +220,158 @@ def _cmd_run(args: argparse.Namespace) -> int:
         print("strict mode: warnings are failures")
         return EXIT_GATE_FAILED
     return EXIT_OK
+
+
+def _start_mock(loaded, quiet: bool):  # type: ignore[no-untyped-def]
+    """Start the bundled mock on the port the suite's candidate names."""
+    from parity_gate.mock import start as start_mock
+
+    port = urlsplit(loaded.candidate.base_url).port or 8799
+    server = start_mock(port)
+    _say(f"mock api on {server.base_url}", quiet)
+    return server
+
+
+def _stop_mock(server) -> None:  # type: ignore[no-untyped-def]
+    if server is not None:
+        server.shutdown()
+        server.server_close()
+
+
+def _write_bundle(run, root: Path) -> Path:  # type: ignore[no-untyped-def]
+    """Write the evidence bundle for a run and return its directory."""
+    bundle = root / run.run_id
+    files = evidence.write_run(run, bundle)
+    files["report.md"] = evidence.write_text(bundle / "report.md", report.render_markdown(run))
+    files["report.html"] = evidence.write_text(bundle / "report.html", report.render_html(run))
+    evidence.write_manifest(bundle, files, run.chain_head, run.run_id)
+    return bundle
+
+
+def _cmd_record(args: argparse.Namespace) -> int:
+    try:
+        loaded = suite_module.load(args.suite)
+    except suite_module.SuiteError as exc:
+        _err(str(exc))
+        return EXIT_USAGE
+
+    destination = args.out or loaded.contract_path
+    if destination is None:
+        _err(
+            "nowhere to write the contract. Either pass --out, or point the suite at one:\n"
+            '    [targets.baseline]\n    snapshot = "contracts/api.json"'
+        )
+        return EXIT_USAGE
+
+    def announce(case, probe) -> None:  # type: ignore[no-untyped-def]
+        verdict = probe.stability.verdict if probe.stability else "UNKNOWN"
+        note = "" if verdict == "STABLE" else f"   <- {verdict.lower()}"
+        print(f"  {case.id:<9} {len(probe.schema.fields):>4} fields{note}")
+
+    server = None
+    try:
+        if args.with_mock:
+            server = _start_mock(loaded, args.quiet)
+        if args.source_url:
+            loaded.candidate.base_url = args.source_url
+        runner = Runner(loaded)
+        _say(f"recording {loaded.name} from {loaded.candidate.base_url}\n", args.quiet)
+        contract = runner.record_contract(on_case=None if args.quiet else announce)
+    except SafetyError as exc:
+        _err(f"refused before sending anything: {exc}")
+        return EXIT_REFUSED
+    except (ContractRecordingError, suite_module.SuiteError) as exc:
+        _err(str(exc))
+        return EXIT_USAGE
+    except OSError as exc:
+        _err(f"could not start the mock API: {exc}")
+        return EXIT_USAGE
+    finally:
+        _stop_mock(server)
+
+    contracts.save(contract, destination)
+
+    unsteady = {
+        case_id: case.stability
+        for case_id, case in contract.cases.items()
+        if case.stability != "STABLE"
+    }
+    print()
+    print(f"contract  {destination}")
+    print(f"cases     {len(contract.cases)} recorded (shape and statuses only, no values)")
+    if unsteady:
+        print(f"unsteady  {len(unsteady)} endpoint(s) did not answer identically on every call:")
+        for case_id, verdict in sorted(unsteady.items()):
+            print(f"            {case_id:<9} {verdict}")
+        print("          Fix or mask those before treating this contract as a reference.")
+    print("\nReview the file, commit it, then point the suite's baseline at it.")
+    return EXIT_OK
+
+
+def _cmd_stability(args: argparse.Namespace) -> int:
+    try:
+        loaded = suite_module.load(args.suite)
+    except suite_module.SuiteError as exc:
+        _err(str(exc))
+        return EXIT_USAGE
+
+    server = None
+    try:
+        if args.with_mock:
+            server = _start_mock(loaded, args.quiet)
+        runner = Runner(loaded)
+        _say(
+            f"sampling {loaded.name} at {loaded.candidate.base_url} "
+            f"({len(loaded.cases)} cases x {loaded.repeats} calls)\n",
+            args.quiet,
+        )
+        run = runner.measure_stability(on_case=None if args.quiet else _print_case)
+    except SafetyError as exc:
+        _err(f"refused before sending anything: {exc}")
+        return EXIT_REFUSED
+    except OSError as exc:
+        _err(f"could not start the mock API: {exc}")
+        return EXIT_USAGE
+    finally:
+        _stop_mock(server)
+
+    bundle = _write_bundle(run, Path(args.evidence))
+    suggestions = _mask_suggestions(run)
+    summary = run.to_dict()["summary"]
+
+    print()
+    print(f"verdict   {_colour(run.verdict)}{run.verdict}{_reset()}")
+    print(
+        f"cases     {summary['cases']} - "
+        + ", ".join(f"{count} {name}" for name, count in summary["by_verdict"].items() if count)
+    )
+    print(
+        f"stability {summary['unstable_cases']} unstable, "
+        f"{summary.get('volatile_cases', 0)} merely noisy"
+    )
+    if suggestions:
+        print("\nNoise found. Add to [policy] in the suite so it stops being reported:")
+        print("mask_paths = [")
+        for path in suggestions:
+            print(f'  "{path}",')
+        print("]")
+    print(f"\nevidence  {bundle}")
+
+    if run.verdict in {FAIL, ERROR}:
+        return EXIT_GATE_FAILED
+    if args.strict and run.verdict == WARN:
+        return EXIT_GATE_FAILED
+    return EXIT_OK
+
+
+def _mask_suggestions(run) -> list[str]:  # type: ignore[no-untyped-def]
+    """Every volatile path the run found, de-duplicated and ready to paste."""
+    found: set[str] = set()
+    for record in run.records:
+        for side in record.stability.values():
+            if isinstance(side, dict):
+                found.update(side.get("volatile_paths") or [])
+    return sorted(found)
 
 
 def _cmd_verify(args: argparse.Namespace) -> int:

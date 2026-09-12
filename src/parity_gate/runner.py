@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from parity_gate import evidence, flaky
+from parity_gate import contracts, evidence, flaky
 from parity_gate.differ import Difference, diff
 from parity_gate.evidence import ERROR, FAIL, PASS, WARN, Record, Run
 from parity_gate.httpclient import Client, Response
@@ -29,6 +29,10 @@ from parity_gate.schema import Schema, Severity, compare, infer, render_path
 from parity_gate.suite import Case, Suite, Target
 
 _SUBSCRIPT = re.compile(r"\[[^\]]*\]")
+
+
+class ContractRecordingError(Exception):
+    """A contract could not be recorded because the source did not fully answer."""
 
 
 @dataclass
@@ -56,6 +60,14 @@ class Runner:
         self.suite = suite
         self.client = Client(suite.policy)
         self.on_case = on_case
+        # Loaded lazily: `record` has to run before the file exists.
+        self.contract: contracts.Contract | None = None
+
+    def _load_contract(self) -> None:
+        if self.suite.baseline.is_recorded and self.contract is None:
+            path = self.suite.contract_path
+            assert path is not None
+            self.contract = contracts.load(path)
 
     def preflight(self) -> None:
         """Validate every URL and method before the first packet leaves.
@@ -63,25 +75,109 @@ class Runner:
         Discovering on case 40 of 60 that the run was pointed at the wrong host
         is discovering it 39 cases too late.
         """
+        live = [t for t in (self.suite.baseline, self.suite.candidate) if not t.is_recorded]
         for case in self.suite.cases:
             check_method(case.method, mutating=case.mutating, policy=self.suite.policy)
-            for target in (self.suite.baseline, self.suite.candidate):
+            for target in live:
                 check_url(target.url_for(case.path), self.suite.policy)
 
-    def execute(self) -> Run:
+    def _new_run(self) -> Run:
         suite = self.suite
-        self.preflight()
-        run = Run(
+        return Run(
             run_id=evidence.new_run_id(),
             suite_name=suite.name,
             suite_path=str(suite.source),
             suite_sha256=evidence.sha256_text(Path(suite.source).read_text(encoding="utf-8")),
-            baseline_url=suite.baseline.base_url,
-            candidate_url=suite.candidate.base_url,
+            baseline_url=(
+                f"recorded contract: {suite.baseline.snapshot}"
+                if suite.baseline.is_recorded
+                else suite.baseline.base_url
+            ),
+            candidate_url=suite.candidate.label,
             policy=suite.policy.to_dict(),
         )
 
-        for case in suite.cases:
+    def record_contract(self, on_case: Any = None) -> contracts.Contract:
+        """Probe the live candidate and capture the shape it has today.
+
+        This is how a team with a single API gets a baseline: record once,
+        review the file, commit it. Stability is recorded alongside each case,
+        because a contract taken from an endpoint that answers differently on
+        every call is worth knowing about before it is trusted as a reference.
+        """
+        self.preflight()
+        contract = contracts.Contract(
+            suite_name=self.suite.name,
+            source_url=self.suite.candidate.base_url,
+            recorded_at=contracts.now(),
+            note="Shape only: types, requiredness and observed statuses. No values.",
+        )
+        for case in self.suite.cases:
+            probe = self._probe(self.suite.candidate, case)
+            if probe.first is None or probe.first.transport_error:
+                raise ContractRecordingError(
+                    f"case {case.id!r} did not answer: "
+                    f"{probe.first.transport_error if probe.first else 'no response'}. "
+                    "A contract recorded from a half-reachable service is worse than none."
+                )
+            contract.cases[case.id] = contracts.RecordedCase(
+                schema=probe.schema,
+                statuses=sorted({r.status for r in probe.responses if r.status is not None}),
+                stability=probe.stability.verdict if probe.stability else "UNKNOWN",
+            )
+            if on_case:
+                on_case(case, probe)
+        return contract
+
+    def measure_stability(self, on_case: Any = None) -> Run:
+        """Call every case repeatedly and report only how steady the answers are.
+
+        No baseline, no contract, no comparison, and the suite's own assertions
+        are deliberately not evaluated: this measures the endpoints, not the
+        expectations. It is what to run before writing assertions against an
+        API, because an endpoint that answers differently on identical calls
+        will make any suite built on it look broken at random.
+        """
+        self.preflight()
+        run = self._new_run()
+        for case in self.suite.cases:
+            record = Record(case=case.to_dict(), verdict=PASS)
+            try:
+                check_method(case.method, mutating=case.mutating, policy=self.suite.policy)
+                probe = self._probe(self.suite.candidate, case)
+            except SafetyError as exc:
+                record.verdict = ERROR
+                record.error = f"refused by safety policy: {exc}"
+                run.add(record)
+                continue
+
+            record.candidate = self._exchange(probe)
+            record.stability = {
+                "baseline": {},
+                "candidate": probe.stability.to_dict() if probe.stability else {},
+            }
+            if probe.first is None or probe.first.transport_error:
+                record.verdict = ERROR
+                record.error = self._transport_error(None, probe)
+            else:
+                verdict = probe.stability.verdict if probe.stability else flaky.STABLE
+                if verdict in {flaky.FLAKY_STATUS, flaky.FLAKY_SHAPE}:
+                    record.verdict = FAIL
+                elif verdict == flaky.VOLATILE_BODY:
+                    record.verdict = WARN
+            run.add(record)
+            if on_case:
+                on_case(case, record)
+
+        run.finished_at = evidence.utc_now()
+        return run
+
+    def execute(self) -> Run:
+        self.preflight()
+        self._load_contract()
+        run = self._new_run()
+
+        for case in self.suite.cases:
             record = self._run_case(case)
             run.add(record)
             if self.on_case:
@@ -93,6 +189,85 @@ class Runner:
     # -- one case -----------------------------------------------------------
 
     def _run_case(self, case: Case) -> Record:
+        if self.contract is not None:
+            return self._run_case_against_contract(case)
+        return self._run_case_against_live_baseline(case)
+
+    def _run_case_against_contract(self, case: Case) -> Record:
+        """Gate one case against the shape recorded for it earlier.
+
+        Only the contract is compared, never values: the recording holds types
+        and requiredness, not data, on purpose. Statuses are part of the
+        contract too, so an endpoint that used to answer 404 and now answers
+        200 is caught without anyone having written that assertion.
+        """
+        record = Record(case=case.to_dict(), verdict=PASS)
+        assert self.contract is not None
+
+        recorded = self.contract.cases.get(case.id)
+        try:
+            check_method(case.method, mutating=case.mutating, policy=self.suite.policy)
+            candidate = self._probe(self.suite.candidate, case)
+        except SafetyError as exc:
+            record.verdict = ERROR
+            record.error = f"refused by safety policy: {exc}"
+            return record
+
+        record.candidate = self._exchange(candidate)
+        record.baseline = {
+            "source": "recorded contract",
+            "path": str(self.suite.contract_path),
+            "recorded_at": self.contract.recorded_at,
+            "recorded_from": self.contract.source_url,
+        }
+        record.stability = {
+            "baseline": {},
+            "candidate": candidate.stability.to_dict() if candidate.stability else {},
+        }
+
+        if candidate.first is None or candidate.first.transport_error:
+            record.verdict = ERROR
+            record.error = self._transport_error(None, candidate)
+            return record
+
+        if recorded is None:
+            record.checks = self._checks(case, candidate)
+            record.verdict = WARN if all(c["passed"] for c in record.checks) else FAIL
+            record.error = (
+                f"case {case.id!r} has no entry in the recorded contract, so its shape is "
+                "not gated. Re-record after reviewing: parity-gate record --suite <suite>"
+            )
+            return record
+
+        if candidate.stability and not candidate.stability.trustworthy:
+            record.checks = self._checks(case, candidate)
+            record.error = (
+                f"contract check skipped: candidate is {candidate.stability.verdict} across "
+                f"{self.suite.repeats_for(case)} identical calls. Stabilise the endpoint first."
+            )
+            record.verdict = FAIL if any(not c["passed"] for c in record.checks) else WARN
+            return record
+
+        drifts = compare(recorded.schema, candidate.schema)
+        record.drifts = [d.to_dict() for d in drifts]
+        record.schema = {
+            "baseline": recorded.schema.to_dict(),
+            "candidate": candidate.schema.to_dict(),
+        }
+
+        record.checks = self._checks(case, candidate)
+        record.checks.extend(_status_contract_checks(recorded, candidate))
+        record.differences_suppressed = 0
+
+        if any(not check["passed"] for check in record.checks):
+            record.verdict = FAIL
+        elif any(d.severity is Severity.BREAKING for d in drifts):
+            record.verdict = FAIL
+        elif drifts or (candidate.stability and candidate.stability.verdict == flaky.VOLATILE_BODY):
+            record.verdict = WARN
+        return record
+
+    def _run_case_against_live_baseline(self, case: Case) -> Record:
         record = Record(case=case.to_dict(), verdict=PASS)
 
         try:
@@ -184,8 +359,11 @@ class Runner:
         return evidence.capture_exchange(probe.first, probe.headers_sent)
 
     @staticmethod
-    def _transport_error(baseline: Probe, candidate: Probe) -> str | None:
-        for label, probe in (("baseline", baseline), ("candidate", candidate)):
+    def _transport_error(baseline: Probe | None, candidate: Probe) -> str | None:
+        pairs = [("candidate", candidate)]
+        if baseline is not None:
+            pairs.insert(0, ("baseline", baseline))
+        for label, probe in pairs:
             first = probe.first
             if first is None:
                 return f"{label}: no response captured"
@@ -269,6 +447,27 @@ class Runner:
 
 def _check(name: str, passed: bool, failure_detail: str) -> dict[str, Any]:
     return {"name": name, "passed": passed, "detail": "" if passed else failure_detail}
+
+
+def _status_contract_checks(
+    recorded: contracts.RecordedCase, candidate: Probe
+) -> list[dict[str, Any]]:
+    """The status an endpoint answers with is part of its contract.
+
+    Recording it means the classic "404 quietly became 200" is caught on a case
+    where nobody thought to write ``expect_status``.
+    """
+    if not recorded.statuses:
+        return []
+    seen = sorted({r.status for r in candidate.responses if r.status is not None})
+    unexpected = [status for status in seen if status not in recorded.statuses]
+    return [
+        _check(
+            "recorded_status",
+            not unexpected,
+            f"recorded contract answers {recorded.statuses}, this run answered {seen}",
+        )
+    ]
 
 
 #: Which value-level difference each contract-drift finding already explains.

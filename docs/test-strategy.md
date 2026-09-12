@@ -1,8 +1,25 @@
 # Test strategy
 
 The strategy behind the demo suite, written the way it would be written for a
-real migration. It is here because the code shows *how* the tool works and this
+real change. It is here because the code shows *how* the tool works and this
 shows *why* those cases and not others.
+
+## Which situation this covers
+
+The tool serves three, and they share most of this document:
+
+| Situation | Oracle | How common |
+| --- | --- | --- |
+| A deploy into existing consumers | A contract recorded earlier | Every team with an API |
+| An API you have not tested yet | Its own repeated answers | Every team, once |
+| A rewrite replacing a live service | The old service | During a migration |
+
+What follows is written for the third, because it is the strictest: it is the
+only one where *values* are compared, so it has the most to say about oracles
+and noise. Everything about risk, scope and exit criteria applies unchanged to
+the other two — the recorded-contract mode simply drops the value-comparison
+rows and gains one guarantee, that the shape and status codes cannot move
+without the build saying so.
 
 ## Context
 

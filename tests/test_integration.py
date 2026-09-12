@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 from parity_gate.cli import EXIT_GATE_FAILED, EXIT_OK, EXIT_REFUSED, main
+from parity_gate.contracts import ContractError, save
 from parity_gate.evidence import FAIL, PASS, WARN, verify
 from parity_gate.mock import MockServer, start
 from parity_gate.runner import Runner
@@ -225,3 +226,155 @@ def test_a_run_against_itself_is_clean(mock: MockServer, tmp_path: Path) -> None
     assert found["CAT-001"].differences == []
     assert found["CAT-002"].verdict == PASS
     assert found["CAT-003"].verdict == PASS
+
+
+# -- single-service mode: gate against a contract recorded earlier -----------
+
+CONTRACT_SUITE = """
+name = "contract-guard"
+[targets.baseline]
+snapshot = "recorded.json"
+[targets.candidate]
+base_url = "{base}/{variant}"
+[policy]
+allowed_hosts = ["127.0.0.1"]
+allow_private_networks = true
+max_retries = 0
+repeats = 3
+timeout_seconds = 5
+mask_paths = ["$.meta.requestId", "$.meta.generatedAt"]
+
+[[cases]]
+id = "CAT-001"
+requirement = "REQ-CAT-01"
+title = "Product listing"
+risk = "critical"
+method = "GET"
+path = "/products?limit=4"
+
+[[cases]]
+id = "CAT-003"
+requirement = "REQ-CAT-03"
+title = "Unknown id"
+method = "GET"
+path = "/products/999"
+"""
+
+
+def _contract_suite(tmp_path: Path, mock: MockServer, variant: str) -> Path:
+    target = tmp_path / f"{variant}.toml"
+    target.write_text(CONTRACT_SUITE.format(base=mock.base_url, variant=variant), encoding="utf-8")
+    return target
+
+
+def test_a_recorded_contract_gates_a_single_service(tmp_path: Path, mock: MockServer) -> None:
+    """Record the old shape, then check the rewrite against the file.
+
+    This is the mode that does not need two live services, which is every team
+    that has one API and consumers who cannot be redeployed in lockstep.
+    """
+    record_from = _contract_suite(tmp_path, mock, "legacy")
+    contract = Runner(load(record_from)).record_contract()
+    save(contract, tmp_path / "recorded.json")
+
+    gate = _contract_suite(tmp_path, mock, "next")
+    found = {r.case["id"]: r for r in Runner(load(gate)).execute().records}
+
+    drifts = {d["path"]: d for d in found["CAT-001"].drifts}
+    assert drifts["$.products[].price"]["kind"] == "TYPE_CHANGED"
+    assert drifts["$.products[].stock"]["kind"] == "FIELD_REMOVED"
+    assert drifts["$.products[].discount"]["kind"] == "NULLABLE_ADDED"
+    assert found["CAT-001"].verdict == FAIL
+
+
+def test_the_recorded_status_catches_a_404_that_became_a_200(
+    tmp_path: Path, mock: MockServer
+) -> None:
+    """No `expect_status` is written anywhere in CONTRACT_SUITE.
+
+    The status an endpoint answers with is part of what gets recorded, so the
+    softened error is caught on a case nobody thought to assert on.
+    """
+    save(Runner(load(_contract_suite(tmp_path, mock, "legacy"))).record_contract(),
+         tmp_path / "recorded.json")
+    gate = Runner(load(_contract_suite(tmp_path, mock, "next"))).execute()
+    record = {r.case["id"]: r for r in gate.records}["CAT-003"]
+
+    failed = [c for c in record.checks if not c["passed"]]
+    assert [c["name"] for c in failed] == ["recorded_status"]
+    assert "404" in failed[0]["detail"] and "200" in failed[0]["detail"]
+
+
+def test_the_service_checked_against_its_own_recording_is_clean(
+    tmp_path: Path, mock: MockServer
+) -> None:
+    """The control experiment for contract mode."""
+    suite_path = _contract_suite(tmp_path, mock, "legacy")
+    save(Runner(load(suite_path)).record_contract(), tmp_path / "recorded.json")
+
+    for record in Runner(load(suite_path)).execute().records:
+        assert record.drifts == []
+        assert record.verdict == PASS, record.error
+
+
+def test_a_case_with_no_recorded_entry_is_flagged_not_silently_passed(
+    tmp_path: Path, mock: MockServer
+) -> None:
+    suite_path = _contract_suite(tmp_path, mock, "legacy")
+    contract = Runner(load(suite_path)).record_contract()
+    del contract.cases["CAT-003"]
+    save(contract, tmp_path / "recorded.json")
+
+    record = {r.case["id"]: r for r in Runner(load(suite_path)).execute().records}["CAT-003"]
+    assert record.verdict == WARN
+    assert "no entry in the recorded contract" in (record.error or "")
+
+
+def test_a_contract_records_shape_and_status_but_never_values(
+    tmp_path: Path, mock: MockServer
+) -> None:
+    contract = Runner(load(_contract_suite(tmp_path, mock, "legacy"))).record_contract()
+    text = save(contract, tmp_path / "recorded.json").read_text(encoding="utf-8")
+
+    assert contract.cases["CAT-003"].statuses == [404]
+    assert "Torx screwdriver" not in text  # a value, deliberately not recorded
+    assert "$.products[].price" in text  # the shape, deliberately recorded
+
+
+def test_running_without_a_recorded_contract_says_how_to_make_one(
+    tmp_path: Path, mock: MockServer
+) -> None:
+    suite_path = _contract_suite(tmp_path, mock, "next")
+    with pytest.raises(ContractError, match="parity-gate record"):
+        Runner(load(suite_path)).execute()
+
+
+# -- stability mode: one service, no comparison at all ----------------------
+
+
+def test_stability_mode_measures_endpoints_not_expectations(
+    suite_file: Path, tmp_path: Path
+) -> None:
+    run = Runner(load(suite_file)).measure_stability()
+    found = {r.case["id"]: r for r in run.records}
+
+    assert found["OPS-002"].verdict == FAIL  # intermittent status
+    assert found["OPS-001"].verdict == WARN  # noisy body
+    assert found["OPS-001"].stability["candidate"]["volatile_paths"] == ["$.uptimeSeconds"]
+    assert found["CAT-001"].verdict == PASS
+
+    # The suite's own assertions are not evaluated here: CAT-003 expects 404 and
+    # gets 200, which is a real failure for `run` and none of this mode's business.
+    assert found["CAT-003"].verdict == PASS
+    assert found["CAT-003"].checks == []
+
+
+def test_the_stability_cli_writes_a_bundle_and_fails_on_an_unstable_endpoint(
+    suite_file: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "stability"
+    assert main(["stability", "--suite", str(suite_file), "--evidence", str(out), "--quiet"]) == (
+        EXIT_GATE_FAILED
+    )
+    (bundle,) = list(out.iterdir())
+    assert verify(bundle) == []

@@ -30,14 +30,28 @@ class SuiteError(Exception):
 
 @dataclass
 class Target:
-    """One side of the comparison."""
+    """One side of the comparison.
+
+    A target is either **live** (``base_url``) or a **recorded contract**
+    (``snapshot``). Only the baseline may be a recording: there has to be
+    something running to check.
+    """
 
     name: str
-    base_url: str
+    base_url: str = ""
+    snapshot: str = ""
     auth_env: str | None = None
     auth_header: str = "Authorization"
     auth_scheme: str = "Bearer"
     headers: dict[str, str] = field(default_factory=dict)
+
+    @property
+    def is_recorded(self) -> bool:
+        return bool(self.snapshot)
+
+    @property
+    def label(self) -> str:
+        return self.snapshot if self.is_recorded else self.base_url
 
     def resolved_headers(self) -> dict[str, str]:
         """Headers for this target, with the credential pulled from the env.
@@ -121,6 +135,18 @@ class Suite:
 
     def repeats_for(self, case: Case) -> int:
         return case.repeats if case.repeats is not None else self.repeats
+
+    @property
+    def contract_path(self) -> Path | None:
+        """Where the recorded contract lives, if the baseline is a recording.
+
+        Resolved relative to the suite file, so a suite directory can be moved
+        or checked out anywhere and still find its own contracts.
+        """
+        if not self.baseline.is_recorded:
+            return None
+        candidate = Path(self.baseline.snapshot)
+        return candidate if candidate.is_absolute() else self.source.parent / candidate
 
 
 def load(path: str | Path) -> Suite:
@@ -212,9 +238,25 @@ def _build(data: dict[str, Any], source: Path) -> Suite:
 def _target(name: str, raw: Any, source: Path) -> Target:
     if not isinstance(raw, dict):
         raise SuiteError(f"{source}: [targets.{name}] must be a table")
-    base_url = raw.get("base_url")
-    if not isinstance(base_url, str) or not base_url.strip():
-        raise SuiteError(f"{source}: targets.{name}.base_url is required")
+
+    base_url = str(raw.get("base_url") or "").strip()
+    snapshot = str(raw.get("snapshot") or "").strip()
+
+    if base_url and snapshot:
+        raise SuiteError(
+            f"{source}: targets.{name} sets both base_url and snapshot. "
+            "A target is either a live service or a recorded contract, not both."
+        )
+    if not base_url and not snapshot:
+        raise SuiteError(
+            f"{source}: targets.{name} needs either base_url (a live service) "
+            'or snapshot (a recorded contract, e.g. snapshot = "contracts/api.json")'
+        )
+    if snapshot and name != "baseline":
+        raise SuiteError(
+            f"{source}: only targets.baseline may be a recorded contract; "
+            f"targets.{name} has to be a running service for there to be anything to check"
+        )
 
     auth_env: str | None = None
     auth = raw.get("auth")
@@ -230,7 +272,8 @@ def _target(name: str, raw: Any, source: Path) -> Target:
 
     return Target(
         name=name,
-        base_url=base_url.strip(),
+        base_url=base_url,
+        snapshot=snapshot,
         auth_env=auth_env,
         auth_header=str(raw.get("auth_header", "Authorization")),
         auth_scheme=str(raw.get("auth_scheme", "Bearer")),

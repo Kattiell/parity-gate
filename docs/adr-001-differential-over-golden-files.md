@@ -1,6 +1,6 @@
 # ADR-001: Compare against the running baseline, not against golden files
 
-**Status:** accepted · **Date:** 2026-09-12
+**Status:** accepted · **Date:** 2026-09-12 · **Extended by:** [ADR-002](adr-002-record-shape-not-values.md)
 
 ## Context
 
@@ -66,3 +66,11 @@ stability before comparing anything.
 If the baseline is decommissioned before the gate is retired, the fallback is to
 record its responses under the same masks the live comparison used, and accept
 the decay — with the expiry written down rather than discovered.
+
+## Revisited
+
+That fallback turned out to be the main event, and the decay turned out to be
+avoidable. [ADR-002](adr-002-record-shape-not-values.md) records a contract that
+holds shape and status but no values, which removes the rot mechanism this
+decision was written to avoid — and lifts the requirement for two live services,
+which was the real limitation here.

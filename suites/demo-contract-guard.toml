@@ -1,0 +1,70 @@
+name = "demo-contract-guard"
+description = """
+The single-service mode: no second API required.
+
+The baseline here is a contract recorded earlier (`contracts/demo-catalog.json`,
+committed alongside this file) rather than a live service. Every run gates the
+API against the shape it had when that file was written, which is the check any
+team with one API and real consumers needs on every deploy.
+
+Recorded with:
+    parity-gate record --suite suites/demo-contract-guard.toml --with-mock \
+                       --from http://127.0.0.1:8799/legacy
+
+Then gated with:
+    parity-gate run --suite suites/demo-contract-guard.toml --with-mock
+"""
+
+[targets.baseline]
+snapshot = "contracts/demo-catalog.json"
+
+[targets.candidate]
+base_url = "http://127.0.0.1:8799/next"
+
+[policy]
+allowed_hosts = ["127.0.0.1"]
+allow_private_networks = true
+allow_mutations = false
+timeout_seconds = 5
+max_retries = 0
+repeats = 3
+mask_paths = ["$.meta.requestId", "$.meta.generatedAt"]
+
+[policy.array_keys]
+"$.products" = "id"
+
+[[cases]]
+id = "CAT-001"
+requirement = "REQ-CAT-01"
+title = "Product listing keeps the shape its consumers were built against"
+risk = "critical"
+method = "GET"
+path = "/products?limit=4"
+required_fields = ["$.products", "$.total", "$.skip", "$.limit"]
+
+[[cases]]
+id = "CAT-002"
+requirement = "REQ-CAT-02"
+title = "Product detail is unchanged"
+risk = "high"
+method = "GET"
+path = "/products/1"
+
+[[cases]]
+id = "CAT-003"
+requirement = "REQ-CAT-03"
+title = "An unknown product id keeps answering the way it used to"
+risk = "high"
+method = "GET"
+path = "/products/999"
+# No expect_status on purpose: the recorded contract remembers it answered 404,
+# so the change to 200 is caught without anyone having written that assertion.
+
+[[cases]]
+id = "SEC-001"
+requirement = "REQ-SEC-01"
+title = "No internal cost on the public catalogue"
+risk = "critical"
+method = "GET"
+path = "/products?limit=2"
+forbidden_fields = ["$.products[].internalCost"]

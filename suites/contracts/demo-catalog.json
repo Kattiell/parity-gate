@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "tool_version": "0.1.0",
+  "suite": "demo-contract-guard",
+  "recorded_from": "http://127.0.0.1:8799/legacy",
+  "recorded_at": "2026-09-12T04:45:42Z",
+  "note": "Shape only: types, requiredness and observed statuses. No values.",
+  "cases": {
+    "CAT-001": {
+      "statuses": [
+        200
+      ],
+      "stability": "STABLE",
+      "schema": {
+        "samples": 3,
+        "fingerprint": "d3275d338f7f5f301182601aec0b2c85f6e8a87fd84d234e971d2a20038fe90c",
+        "fields": [
+          {"path": "$", "types": ["object"], "required": true},
+          {"path": "$.limit", "types": ["integer"], "required": true},
+          {"path": "$.meta", "types": ["object"], "required": true},
+          {"path": "$.meta.generatedAt", "types": ["string"], "required": true},
+          {"path": "$.meta.requestId", "types": ["string"], "required": true},
+          {"path": "$.products", "types": ["array"], "required": true},
+          {"path": "$.products[]", "types": ["object"], "required": true},
+          {"path": "$.products[].category", "types": ["string"], "required": true},
+          {"path": "$.products[].discount", "types": ["number"], "required": true},
+          {"path": "$.products[].id", "types": ["integer"], "required": true},
+          {"path": "$.products[].price", "types": ["number"], "required": true},
+          {"path": "$.products[].stock", "types": ["integer"], "required": true},
+          {"path": "$.products[].tags", "types": ["array"], "required": true},
+          {"path": "$.products[].tags[]", "types": ["string"], "required": true},
+          {"path": "$.products[].title", "types": ["string"], "required": true},
+          {"path": "$.skip", "types": ["integer"], "required": true},
+          {"path": "$.total", "types": ["integer"], "required": true}
+        ]
+      }
+    },
+    "CAT-002": {
+      "statuses": [
+        200
+      ],
+      "stability": "STABLE",
+      "schema": {
+        "samples": 3,
+        "fingerprint": "6792eff6bde443b0078386f6863704278aa856b96e31766809ae48566ffa04a3",
+        "fields": [
+          {"path": "$", "types": ["object"], "required": true},
+          {"path": "$.category", "types": ["string"], "required": true},
+          {"path": "$.discount", "types": ["number"], "required": true},
+          {"path": "$.id", "types": ["integer"], "required": true},
+          {"path": "$.price", "types": ["number"], "required": true},
+          {"path": "$.stock", "types": ["integer"], "required": true},
+          {"path": "$.tags", "types": ["array"], "required": true},
+          {"path": "$.tags[]", "types": ["string"], "required": true},
+          {"path": "$.title", "types": ["string"], "required": true}
+        ]
+      }
+    },
+    "CAT-003": {
+      "statuses": [
+        404
+      ],
+      "stability": "STABLE",
+      "schema": {
+        "samples": 3,
+        "fingerprint": "977b077b25e0f99d1dd4b68409854fe2ca70d25aa9118b74572d53206a36f6d8",
+        "fields": [
+          {"path": "$", "types": ["object"], "required": true},
+          {"path": "$.code", "types": ["string"], "required": true},
+          {"path": "$.error", "types": ["string"], "required": true}
+        ]
+      }
+    },
+    "SEC-001": {
+      "statuses": [
+        200
+      ],
+      "stability": "STABLE",
+      "schema": {
+        "samples": 3,
+        "fingerprint": "d3275d338f7f5f301182601aec0b2c85f6e8a87fd84d234e971d2a20038fe90c",
+        "fields": [
+          {"path": "$", "types": ["object"], "required": true},
+          {"path": "$.limit", "types": ["integer"], "required": true},
+          {"path": "$.meta", "types": ["object"], "required": true},
+          {"path": "$.meta.generatedAt", "types": ["string"], "required": true},
+          {"path": "$.meta.requestId", "types": ["string"], "required": true},
+          {"path": "$.products", "types": ["array"], "required": true},
+          {"path": "$.products[]", "types": ["object"], "required": true},
+          {"path": "$.products[].category", "types": ["string"], "required": true},
+          {"path": "$.products[].discount", "types": ["number"], "required": true},
+          {"path": "$.products[].id", "types": ["integer"], "required": true},
+          {"path": "$.products[].price", "types": ["number"], "required": true},
+          {"path": "$.products[].stock", "types": ["integer"], "required": true},
+          {"path": "$.products[].tags", "types": ["array"], "required": true},
+          {"path": "$.products[].tags[]", "types": ["string"], "required": true},
+          {"path": "$.products[].title", "types": ["string"], "required": true},
+          {"path": "$.skip", "types": ["integer"], "required": true},
+          {"path": "$.total", "types": ["integer"], "required": true}
+        ]
+      }
+    }
+  }
+}
