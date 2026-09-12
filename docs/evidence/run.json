@@ -1,0 +1,1829 @@
+{
+  "schema_version": 1,
+  "tool": {
+    "name": "parity-gate",
+    "version": "0.1.0",
+    "python": "3.13.5",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "run_id": "20260912T040717Z-a35ce1",
+  "suite": {
+    "name": "demo-catalog",
+    "path": "C:\\Users\\Gabriel Caetano\\Downloads\\Claud Code\\parity-gate\\suites\\demo-catalog.toml",
+    "sha256": "7d226bb1e9b4782353708a5ef8a64b56b2cf84be26edc87aadefea401858b6be"
+  },
+  "targets": {
+    "baseline": "http://127.0.0.1:8799/legacy",
+    "candidate": "http://127.0.0.1:8799/next"
+  },
+  "policy": {
+    "allowed_hosts": [
+      "127.0.0.1"
+    ],
+    "allow_mutations": false,
+    "allow_production": false,
+    "allow_private_networks": true,
+    "forbidden_host_patterns": [
+      "prod",
+      "prd",
+      "producao",
+      "production"
+    ],
+    "timeout_seconds": 5.0,
+    "max_retries": 0
+  },
+  "started_at": "2026-09-12T04:07:17Z",
+  "finished_at": "2026-09-12T04:07:17Z",
+  "summary": {
+    "verdict": "FAIL",
+    "cases": 6,
+    "by_verdict": {
+      "PASS": 1,
+      "SKIPPED": 0,
+      "WARN": 2,
+      "FAIL": 3,
+      "ERROR": 0
+    },
+    "breaking_drifts": 7,
+    "differences": 4,
+    "unstable_cases": 1,
+    "volatile_cases": 1
+  },
+  "traceability": {
+    "REQ-CAT-01": [
+      {
+        "case": "CAT-001",
+        "title": "Product listing keeps its pagination envelope and item contract",
+        "risk": "critical",
+        "verdict": "FAIL"
+      }
+    ],
+    "REQ-CAT-02": [
+      {
+        "case": "CAT-002",
+        "title": "Product detail is byte-for-byte unchanged (not part of the migration)",
+        "risk": "high",
+        "verdict": "PASS"
+      }
+    ],
+    "REQ-CAT-03": [
+      {
+        "case": "CAT-003",
+        "title": "An unknown product id still answers 404, not an empty success",
+        "risk": "high",
+        "verdict": "FAIL"
+      }
+    ],
+    "REQ-OPS-01": [
+      {
+        "case": "OPS-001",
+        "title": "Health endpoint answers and reports uptime",
+        "risk": "low",
+        "verdict": "WARN"
+      }
+    ],
+    "REQ-OPS-02": [
+      {
+        "case": "OPS-002",
+        "title": "Inventory sync status is stable enough to be compared at all",
+        "risk": "medium",
+        "verdict": "WARN"
+      }
+    ],
+    "REQ-SEC-01": [
+      {
+        "case": "SEC-001",
+        "title": "Internal cost data is never exposed on the public catalogue",
+        "risk": "critical",
+        "verdict": "FAIL"
+      }
+    ]
+  },
+  "chain_head": "07a62a4133006678c7c2cc62cf1225f59a7ed2a3c80a4a4ee21dd897c2d57267",
+  "records": [
+    {
+      "case": {
+        "id": "CAT-001",
+        "title": "Product listing keeps its pagination envelope and item contract",
+        "requirement": "REQ-CAT-01",
+        "risk": "critical",
+        "method": "GET",
+        "path": "/products?limit=4",
+        "mutating": false
+      },
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "status",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "required_field",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "required_field",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "required_field",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "required_field",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "latency",
+          "passed": true,
+          "detail": ""
+        }
+      ],
+      "drifts": [
+        {
+          "path": "$.products[].discount",
+          "kind": "NULLABLE_ADDED",
+          "severity": "breaking",
+          "detail": "candidate can return null where baseline never did (['number'] -> ['null', 'number'])"
+        },
+        {
+          "path": "$.products[].price",
+          "kind": "TYPE_CHANGED",
+          "severity": "breaking",
+          "detail": "incompatible type change (['number'] -> ['string'])"
+        },
+        {
+          "path": "$.products[].stock",
+          "kind": "FIELD_REMOVED",
+          "severity": "breaking",
+          "detail": "present in baseline but absent from candidate (was always present)"
+        },
+        {
+          "path": "$.products[].internalCost",
+          "kind": "FIELD_ADDED",
+          "severity": "additive",
+          "detail": "new in candidate; harmless for consumers that ignore unknown fields"
+        },
+        {
+          "path": "$.products[].warehouseId",
+          "kind": "FIELD_ADDED",
+          "severity": "additive",
+          "detail": "new in candidate; harmless for consumers that ignore unknown fields"
+        }
+      ],
+      "differences": [
+        {
+          "path": "$.products",
+          "kind": "ORDER_ONLY",
+          "baseline": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "candidate": [
+            4,
+            3,
+            2,
+            1
+          ],
+          "detail": "the same items come back in a different order (by id)"
+        },
+        {
+          "path": "$.total",
+          "kind": "VALUE",
+          "baseline": 4,
+          "candidate": 3,
+          "detail": ""
+        }
+      ],
+      "differences_suppressed": 17,
+      "stability": {
+        "baseline": {
+          "repeats": 3,
+          "verdict": "STABLE",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "p50_ms": 0.67,
+          "max_ms": 1.31,
+          "volatile_paths": [],
+          "detail": "identical status, shape and body across all samples"
+        },
+        "candidate": {
+          "repeats": 3,
+          "verdict": "STABLE",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "p50_ms": 0.58,
+          "max_ms": 24.47,
+          "volatile_paths": [],
+          "detail": "identical status, shape and body across all samples"
+        }
+      },
+      "baseline": {
+        "url": "http://127.0.0.1:8799/legacy/products?limit=4",
+        "method": "GET",
+        "status": 200,
+        "elapsed_ms": 1.31,
+        "attempts": 1,
+        "json_error": null,
+        "transport_error": null,
+        "request_headers": {},
+        "response_headers": {
+          "server": "parity-gate-mock Python/3.13.5",
+          "date": "Sat, 12 Sep 2026 04:07:17 GMT",
+          "content-type": "application/json",
+          "content-length": "658",
+          "cache-control": "no-store"
+        },
+        "body": {
+          "products": [
+            {
+              "id": 1,
+              "title": "Torx screwdriver T20",
+              "category": "tools",
+              "price": 19.9,
+              "stock": 12,
+              "discount": 0.1,
+              "tags": [
+                "hand-tool"
+              ]
+            },
+            {
+              "id": 2,
+              "title": "Impact drill 750W",
+              "category": "tools",
+              "price": 459.0,
+              "stock": 3,
+              "discount": 0.0,
+              "tags": [
+                "power-tool",
+                "corded"
+              ]
+            },
+            {
+              "id": 3,
+              "title": "Safety goggles",
+              "category": "ppe",
+              "price": 39.5,
+              "stock": 80,
+              "discount": 0.05,
+              "tags": [
+                "ppe"
+              ]
+            },
+            {
+              "id": 4,
+              "title": "Work gloves size L",
+              "category": "ppe",
+              "price": 24.0,
+              "stock": 0,
+              "discount": 0.0,
+              "tags": [
+                "ppe",
+                "consumable"
+              ]
+            }
+          ],
+          "total": 4,
+          "skip": 0,
+          "limit": 4,
+          "meta": {
+            "requestId": "legacy-000001",
+            "generatedAt": "2026-01-01T00:00:07Z"
+          }
+        },
+        "body_text_sha256": "d028dba634886f8e6fbaabcf04a8306dd42620c3a05ea5989067e9cc3402b45c",
+        "body_text_preview": null
+      },
+      "candidate": {
+        "url": "http://127.0.0.1:8799/next/products?limit=4",
+        "method": "GET",
+        "status": 200,
+        "elapsed_ms": 0.55,
+        "attempts": 1,
+        "json_error": null,
+        "transport_error": null,
+        "request_headers": {},
+        "response_headers": {
+          "server": "parity-gate-mock Python/3.13.5",
+          "date": "Sat, 12 Sep 2026 04:07:17 GMT",
+          "content-type": "application/json",
+          "content-length": "780",
+          "cache-control": "no-store"
+        },
+        "body": {
+          "products": [
+            {
+              "id": 4,
+              "title": "Work gloves size L",
+              "category": "ppe",
+              "price": "24.00",
+              "discount": null,
+              "tags": [
+                "ppe",
+                "consumable"
+              ],
+              "warehouseId": 12,
+              "internalCost": 9.6
+            },
+            {
+              "id": 3,
+              "title": "Safety goggles",
+              "category": "ppe",
+              "price": "39.50",
+              "discount": 0.05,
+              "tags": [
+                "ppe"
+              ],
+              "warehouseId": 12,
+              "internalCost": 14.2
+            },
+            {
+              "id": 2,
+              "title": "Impact drill 750W",
+              "category": "tools",
+              "price": "459.00",
+              "discount": 0.0,
+              "tags": [
+                "power-tool",
+                "corded"
+              ],
+              "warehouseId": 7,
+              "internalCost": 291.0
+            },
+            {
+              "id": 1,
+              "title": "Torx screwdriver T20",
+              "category": "tools",
+              "price": "19.90",
+              "discount": 0.1,
+              "tags": [
+                "hand-tool"
+              ],
+              "warehouseId": 7,
+              "internalCost": 8.4
+            }
+          ],
+          "total": 3,
+          "skip": 0,
+          "limit": 4,
+          "meta": {
+            "requestId": "next-000001",
+            "generatedAt": "2026-01-01T00:00:07Z"
+          }
+        },
+        "body_text_sha256": "056af7423ba8323bac9c71647d3505d8e950dcd5b1ae6b2d0f6a1c7f13769fe2",
+        "body_text_preview": null
+      },
+      "schema": {
+        "baseline": {
+          "samples": 3,
+          "fingerprint": "d3275d338f7f5f301182601aec0b2c85f6e8a87fd84d234e971d2a20038fe90c",
+          "fields": {
+            "$": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.limit": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.meta": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.meta.generatedAt": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.meta.requestId": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products": {
+              "types": [
+                "array"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[]": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].category": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].discount": {
+              "types": [
+                "number"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].id": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].price": {
+              "types": [
+                "number"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].stock": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].tags": {
+              "types": [
+                "array"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].tags[]": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].title": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.skip": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.total": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            }
+          }
+        },
+        "candidate": {
+          "samples": 3,
+          "fingerprint": "b3e5ac17f436b4bc273533197f9421cbe743354ac939844a86d0252de7b8fbce",
+          "fields": {
+            "$": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.limit": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.meta": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.meta.generatedAt": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.meta.requestId": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products": {
+              "types": [
+                "array"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[]": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].category": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].discount": {
+              "types": [
+                "null",
+                "number"
+              ],
+              "required": true,
+              "nullable": true
+            },
+            "$.products[].id": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].internalCost": {
+              "types": [
+                "number"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].price": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].tags": {
+              "types": [
+                "array"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].tags[]": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].title": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].warehouseId": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.skip": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.total": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            }
+          }
+        }
+      },
+      "error": null,
+      "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "2bf68da972ebb47ad14fe9ed5709878f48f3bb6d09d9ef6cf544028eb497e199"
+    },
+    {
+      "case": {
+        "id": "CAT-002",
+        "title": "Product detail is byte-for-byte unchanged (not part of the migration)",
+        "requirement": "REQ-CAT-02",
+        "risk": "high",
+        "method": "GET",
+        "path": "/products/1",
+        "mutating": false
+      },
+      "verdict": "PASS",
+      "checks": [
+        {
+          "name": "status",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "required_field",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "required_field",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "required_field",
+          "passed": true,
+          "detail": ""
+        }
+      ],
+      "drifts": [],
+      "differences": [],
+      "differences_suppressed": 0,
+      "stability": {
+        "baseline": {
+          "repeats": 3,
+          "verdict": "STABLE",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "p50_ms": 0.69,
+          "max_ms": 0.84,
+          "volatile_paths": [],
+          "detail": "identical status, shape and body across all samples"
+        },
+        "candidate": {
+          "repeats": 3,
+          "verdict": "STABLE",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "p50_ms": 0.67,
+          "max_ms": 0.71,
+          "volatile_paths": [],
+          "detail": "identical status, shape and body across all samples"
+        }
+      },
+      "baseline": {
+        "url": "http://127.0.0.1:8799/legacy/products/1",
+        "method": "GET",
+        "status": 200,
+        "elapsed_ms": 0.84,
+        "attempts": 1,
+        "json_error": null,
+        "transport_error": null,
+        "request_headers": {},
+        "response_headers": {
+          "server": "parity-gate-mock Python/3.13.5",
+          "date": "Sat, 12 Sep 2026 04:07:17 GMT",
+          "content-type": "application/json",
+          "content-length": "131",
+          "cache-control": "no-store"
+        },
+        "body": {
+          "id": 1,
+          "title": "Torx screwdriver T20",
+          "category": "tools",
+          "price": 19.9,
+          "stock": 12,
+          "discount": 0.1,
+          "tags": [
+            "hand-tool"
+          ]
+        },
+        "body_text_sha256": "bc0a5b345ea327a303d3257bb0d71a39ff85c450483eb1b88e4bd59b3a4af24d",
+        "body_text_preview": null
+      },
+      "candidate": {
+        "url": "http://127.0.0.1:8799/next/products/1",
+        "method": "GET",
+        "status": 200,
+        "elapsed_ms": 0.67,
+        "attempts": 1,
+        "json_error": null,
+        "transport_error": null,
+        "request_headers": {},
+        "response_headers": {
+          "server": "parity-gate-mock Python/3.13.5",
+          "date": "Sat, 12 Sep 2026 04:07:17 GMT",
+          "content-type": "application/json",
+          "content-length": "131",
+          "cache-control": "no-store"
+        },
+        "body": {
+          "id": 1,
+          "title": "Torx screwdriver T20",
+          "category": "tools",
+          "price": 19.9,
+          "stock": 12,
+          "discount": 0.1,
+          "tags": [
+            "hand-tool"
+          ]
+        },
+        "body_text_sha256": "bc0a5b345ea327a303d3257bb0d71a39ff85c450483eb1b88e4bd59b3a4af24d",
+        "body_text_preview": null
+      },
+      "schema": {
+        "baseline": {
+          "samples": 3,
+          "fingerprint": "6792eff6bde443b0078386f6863704278aa856b96e31766809ae48566ffa04a3",
+          "fields": {
+            "$": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.category": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.discount": {
+              "types": [
+                "number"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.id": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.price": {
+              "types": [
+                "number"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.stock": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.tags": {
+              "types": [
+                "array"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.tags[]": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.title": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            }
+          }
+        },
+        "candidate": {
+          "samples": 3,
+          "fingerprint": "6792eff6bde443b0078386f6863704278aa856b96e31766809ae48566ffa04a3",
+          "fields": {
+            "$": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.category": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.discount": {
+              "types": [
+                "number"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.id": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.price": {
+              "types": [
+                "number"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.stock": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.tags": {
+              "types": [
+                "array"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.tags[]": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.title": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            }
+          }
+        }
+      },
+      "error": null,
+      "previous_hash": "2bf68da972ebb47ad14fe9ed5709878f48f3bb6d09d9ef6cf544028eb497e199",
+      "hash": "18ac8e0d9d3b4f15644636c5771b4569476da9b252f3f74fffca64c31fabb38c"
+    },
+    {
+      "case": {
+        "id": "CAT-003",
+        "title": "An unknown product id still answers 404, not an empty success",
+        "requirement": "REQ-CAT-03",
+        "risk": "high",
+        "method": "GET",
+        "path": "/products/999",
+        "mutating": false
+      },
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "status",
+          "passed": false,
+          "detail": "expected [404], got 200"
+        }
+      ],
+      "drifts": [
+        {
+          "path": "$.code",
+          "kind": "FIELD_REMOVED",
+          "severity": "breaking",
+          "detail": "present in baseline but absent from candidate (was always present)"
+        },
+        {
+          "path": "$.error",
+          "kind": "FIELD_REMOVED",
+          "severity": "breaking",
+          "detail": "present in baseline but absent from candidate (was always present)"
+        },
+        {
+          "path": "$.data",
+          "kind": "FIELD_ADDED",
+          "severity": "additive",
+          "detail": "new in candidate; harmless for consumers that ignore unknown fields"
+        }
+      ],
+      "differences": [],
+      "differences_suppressed": 3,
+      "stability": {
+        "baseline": {
+          "repeats": 3,
+          "verdict": "STABLE",
+          "statuses": [
+            404,
+            404,
+            404
+          ],
+          "p50_ms": 0.63,
+          "max_ms": 0.74,
+          "volatile_paths": [],
+          "detail": "identical status, shape and body across all samples"
+        },
+        "candidate": {
+          "repeats": 3,
+          "verdict": "STABLE",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "p50_ms": 0.56,
+          "max_ms": 0.57,
+          "volatile_paths": [],
+          "detail": "identical status, shape and body across all samples"
+        }
+      },
+      "baseline": {
+        "url": "http://127.0.0.1:8799/legacy/products/999",
+        "method": "GET",
+        "status": 404,
+        "elapsed_ms": 0.74,
+        "attempts": 1,
+        "json_error": null,
+        "transport_error": null,
+        "request_headers": {},
+        "response_headers": {
+          "server": "parity-gate-mock Python/3.13.5",
+          "date": "Sat, 12 Sep 2026 04:07:17 GMT",
+          "content-type": "application/json",
+          "content-length": "59",
+          "cache-control": "no-store"
+        },
+        "body": {
+          "error": "product not found",
+          "code": "PRODUCT_NOT_FOUND"
+        },
+        "body_text_sha256": "928df63656a5815b4d302b96943965b5a28b94b678da55e46ca909f114a4a311",
+        "body_text_preview": null
+      },
+      "candidate": {
+        "url": "http://127.0.0.1:8799/next/products/999",
+        "method": "GET",
+        "status": 200,
+        "elapsed_ms": 0.56,
+        "attempts": 1,
+        "json_error": null,
+        "transport_error": null,
+        "request_headers": {},
+        "response_headers": {
+          "server": "parity-gate-mock Python/3.13.5",
+          "date": "Sat, 12 Sep 2026 04:07:17 GMT",
+          "content-type": "application/json",
+          "content-length": "14",
+          "cache-control": "no-store"
+        },
+        "body": {
+          "data": null
+        },
+        "body_text_sha256": "aeb0d7f9d1cfc8fe468ead31dc86cfcf45985dd7ff5b1cfa213e70fbb0cd6f28",
+        "body_text_preview": null
+      },
+      "schema": {
+        "baseline": {
+          "samples": 3,
+          "fingerprint": "977b077b25e0f99d1dd4b68409854fe2ca70d25aa9118b74572d53206a36f6d8",
+          "fields": {
+            "$": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.code": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.error": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            }
+          }
+        },
+        "candidate": {
+          "samples": 3,
+          "fingerprint": "51def41c1ca6bc158a13a19d6665e3789edaa28833c7c2df82f7a0b29cf25176",
+          "fields": {
+            "$": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.data": {
+              "types": [
+                "null"
+              ],
+              "required": true,
+              "nullable": true
+            }
+          }
+        }
+      },
+      "error": null,
+      "previous_hash": "18ac8e0d9d3b4f15644636c5771b4569476da9b252f3f74fffca64c31fabb38c",
+      "hash": "1e5f1bf0d9d9836615ba19871766cee7d715f3671ca6cadfc23a057c0845fa55"
+    },
+    {
+      "case": {
+        "id": "SEC-001",
+        "title": "Internal cost data is never exposed on the public catalogue",
+        "requirement": "REQ-SEC-01",
+        "risk": "critical",
+        "method": "GET",
+        "path": "/products?limit=2",
+        "mutating": false
+      },
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "name": "status",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "forbidden_field",
+          "passed": false,
+          "detail": "$.products[].internalCost must not be exposed but is present"
+        },
+        {
+          "name": "forbidden_field",
+          "passed": true,
+          "detail": ""
+        }
+      ],
+      "drifts": [
+        {
+          "path": "$.products[].price",
+          "kind": "TYPE_CHANGED",
+          "severity": "breaking",
+          "detail": "incompatible type change (['number'] -> ['string'])"
+        },
+        {
+          "path": "$.products[].stock",
+          "kind": "FIELD_REMOVED",
+          "severity": "breaking",
+          "detail": "present in baseline but absent from candidate (was always present)"
+        },
+        {
+          "path": "$.products[].internalCost",
+          "kind": "FIELD_ADDED",
+          "severity": "additive",
+          "detail": "new in candidate; harmless for consumers that ignore unknown fields"
+        },
+        {
+          "path": "$.products[].warehouseId",
+          "kind": "FIELD_ADDED",
+          "severity": "additive",
+          "detail": "new in candidate; harmless for consumers that ignore unknown fields"
+        }
+      ],
+      "differences": [
+        {
+          "path": "$.products",
+          "kind": "ORDER_ONLY",
+          "baseline": [
+            1,
+            2
+          ],
+          "candidate": [
+            2,
+            1
+          ],
+          "detail": "the same items come back in a different order (by id)"
+        },
+        {
+          "path": "$.total",
+          "kind": "VALUE",
+          "baseline": 2,
+          "candidate": 1,
+          "detail": ""
+        }
+      ],
+      "differences_suppressed": 8,
+      "stability": {
+        "baseline": {
+          "repeats": 3,
+          "verdict": "STABLE",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "p50_ms": 1.04,
+          "max_ms": 18.49,
+          "volatile_paths": [],
+          "detail": "identical status, shape and body across all samples"
+        },
+        "candidate": {
+          "repeats": 3,
+          "verdict": "STABLE",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "p50_ms": 0.61,
+          "max_ms": 0.75,
+          "volatile_paths": [],
+          "detail": "identical status, shape and body across all samples"
+        }
+      },
+      "baseline": {
+        "url": "http://127.0.0.1:8799/legacy/products?limit=2",
+        "method": "GET",
+        "status": 200,
+        "elapsed_ms": 0.59,
+        "attempts": 1,
+        "json_error": null,
+        "transport_error": null,
+        "request_headers": {},
+        "response_headers": {
+          "server": "parity-gate-mock Python/3.13.5",
+          "date": "Sat, 12 Sep 2026 04:07:17 GMT",
+          "content-type": "application/json",
+          "content-length": "402",
+          "cache-control": "no-store"
+        },
+        "body": {
+          "products": [
+            {
+              "id": 1,
+              "title": "Torx screwdriver T20",
+              "category": "tools",
+              "price": 19.9,
+              "stock": 12,
+              "discount": 0.1,
+              "tags": [
+                "hand-tool"
+              ]
+            },
+            {
+              "id": 2,
+              "title": "Impact drill 750W",
+              "category": "tools",
+              "price": 459.0,
+              "stock": 3,
+              "discount": 0.0,
+              "tags": [
+                "power-tool",
+                "corded"
+              ]
+            }
+          ],
+          "total": 2,
+          "skip": 0,
+          "limit": 2,
+          "meta": {
+            "requestId": "legacy-000004",
+            "generatedAt": "2026-01-01T00:00:28Z"
+          }
+        },
+        "body_text_sha256": "a4187ff09fd9b1771ab6a13e7a0ab580e78fbfa3c8db35d00a7a0dc7facf58cb",
+        "body_text_preview": null
+      },
+      "candidate": {
+        "url": "http://127.0.0.1:8799/next/products?limit=2",
+        "method": "GET",
+        "status": 200,
+        "elapsed_ms": 0.75,
+        "attempts": 1,
+        "json_error": null,
+        "transport_error": null,
+        "request_headers": {},
+        "response_headers": {
+          "server": "parity-gate-mock Python/3.13.5",
+          "date": "Sat, 12 Sep 2026 04:07:17 GMT",
+          "content-type": "application/json",
+          "content-length": "461",
+          "cache-control": "no-store"
+        },
+        "body": {
+          "products": [
+            {
+              "id": 2,
+              "title": "Impact drill 750W",
+              "category": "tools",
+              "price": "459.00",
+              "discount": 0.0,
+              "tags": [
+                "power-tool",
+                "corded"
+              ],
+              "warehouseId": 7,
+              "internalCost": 291.0
+            },
+            {
+              "id": 1,
+              "title": "Torx screwdriver T20",
+              "category": "tools",
+              "price": "19.90",
+              "discount": 0.1,
+              "tags": [
+                "hand-tool"
+              ],
+              "warehouseId": 7,
+              "internalCost": 8.4
+            }
+          ],
+          "total": 1,
+          "skip": 0,
+          "limit": 2,
+          "meta": {
+            "requestId": "next-000004",
+            "generatedAt": "2026-01-01T00:00:28Z"
+          }
+        },
+        "body_text_sha256": "fbe0328fb3610e7bfa3824c31017b0fd6b37072accf9231feff244a9d03b9216",
+        "body_text_preview": null
+      },
+      "schema": {
+        "baseline": {
+          "samples": 3,
+          "fingerprint": "d3275d338f7f5f301182601aec0b2c85f6e8a87fd84d234e971d2a20038fe90c",
+          "fields": {
+            "$": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.limit": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.meta": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.meta.generatedAt": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.meta.requestId": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products": {
+              "types": [
+                "array"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[]": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].category": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].discount": {
+              "types": [
+                "number"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].id": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].price": {
+              "types": [
+                "number"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].stock": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].tags": {
+              "types": [
+                "array"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].tags[]": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].title": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.skip": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.total": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            }
+          }
+        },
+        "candidate": {
+          "samples": 3,
+          "fingerprint": "9d9f3ffe20746db2d3ee96e9ee384ed04ca69738c3b7c1fb7d7772e8f7006f60",
+          "fields": {
+            "$": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.limit": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.meta": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.meta.generatedAt": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.meta.requestId": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products": {
+              "types": [
+                "array"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[]": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].category": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].discount": {
+              "types": [
+                "number"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].id": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].internalCost": {
+              "types": [
+                "number"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].price": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].tags": {
+              "types": [
+                "array"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].tags[]": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].title": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.products[].warehouseId": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.skip": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.total": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            }
+          }
+        }
+      },
+      "error": null,
+      "previous_hash": "1e5f1bf0d9d9836615ba19871766cee7d715f3671ca6cadfc23a057c0845fa55",
+      "hash": "5d078166bf24f4d1b9f0e692defa288c65f5a26ef0e4c3de82bb2e06c105d7dc"
+    },
+    {
+      "case": {
+        "id": "OPS-001",
+        "title": "Health endpoint answers and reports uptime",
+        "requirement": "REQ-OPS-01",
+        "risk": "low",
+        "method": "GET",
+        "path": "/health",
+        "mutating": false
+      },
+      "verdict": "WARN",
+      "checks": [
+        {
+          "name": "status",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "required_field",
+          "passed": true,
+          "detail": ""
+        }
+      ],
+      "drifts": [],
+      "differences": [],
+      "differences_suppressed": 0,
+      "stability": {
+        "baseline": {
+          "repeats": 3,
+          "verdict": "VOLATILE_BODY",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "p50_ms": 0.57,
+          "max_ms": 0.67,
+          "volatile_paths": [
+            "$.uptimeSeconds"
+          ],
+          "detail": "values changed between identical calls; add the suggested paths to policy.mask_paths to stop diffing noise"
+        },
+        "candidate": {
+          "repeats": 3,
+          "verdict": "VOLATILE_BODY",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "p50_ms": 0.6,
+          "max_ms": 0.64,
+          "volatile_paths": [
+            "$.uptimeSeconds"
+          ],
+          "detail": "values changed between identical calls; add the suggested paths to policy.mask_paths to stop diffing noise"
+        }
+      },
+      "baseline": {
+        "url": "http://127.0.0.1:8799/legacy/health",
+        "method": "GET",
+        "status": 200,
+        "elapsed_ms": 0.54,
+        "attempts": 1,
+        "json_error": null,
+        "transport_error": null,
+        "request_headers": {},
+        "response_headers": {
+          "server": "parity-gate-mock Python/3.13.5",
+          "date": "Sat, 12 Sep 2026 04:07:17 GMT",
+          "content-type": "application/json",
+          "content-length": "39",
+          "cache-control": "no-store"
+        },
+        "body": {
+          "status": "ok",
+          "uptimeSeconds": 1001
+        },
+        "body_text_sha256": "c29d1502a1a2d61548f1d791cd29e2352c2f8b21304ea0de0c31c896f7389dbd",
+        "body_text_preview": null
+      },
+      "candidate": {
+        "url": "http://127.0.0.1:8799/next/health",
+        "method": "GET",
+        "status": 200,
+        "elapsed_ms": 0.64,
+        "attempts": 1,
+        "json_error": null,
+        "transport_error": null,
+        "request_headers": {},
+        "response_headers": {
+          "server": "parity-gate-mock Python/3.13.5",
+          "date": "Sat, 12 Sep 2026 04:07:17 GMT",
+          "content-type": "application/json",
+          "content-length": "39",
+          "cache-control": "no-store"
+        },
+        "body": {
+          "status": "ok",
+          "uptimeSeconds": 1001
+        },
+        "body_text_sha256": "c29d1502a1a2d61548f1d791cd29e2352c2f8b21304ea0de0c31c896f7389dbd",
+        "body_text_preview": null
+      },
+      "schema": {
+        "baseline": {
+          "samples": 3,
+          "fingerprint": "6f571040ceb4801ce5ceed595d204a0daeb0b6ba6ea5f306bc93f5b79fbfad12",
+          "fields": {
+            "$": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.status": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.uptimeSeconds": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            }
+          }
+        },
+        "candidate": {
+          "samples": 3,
+          "fingerprint": "6f571040ceb4801ce5ceed595d204a0daeb0b6ba6ea5f306bc93f5b79fbfad12",
+          "fields": {
+            "$": {
+              "types": [
+                "object"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.status": {
+              "types": [
+                "string"
+              ],
+              "required": true,
+              "nullable": false
+            },
+            "$.uptimeSeconds": {
+              "types": [
+                "integer"
+              ],
+              "required": true,
+              "nullable": false
+            }
+          }
+        }
+      },
+      "error": null,
+      "previous_hash": "5d078166bf24f4d1b9f0e692defa288c65f5a26ef0e4c3de82bb2e06c105d7dc",
+      "hash": "39e643c51e06eeeb4f2e7f098a9c68628b41cdc671da17bb727d1f6f3c8a7eab"
+    },
+    {
+      "case": {
+        "id": "OPS-002",
+        "title": "Inventory sync status is stable enough to be compared at all",
+        "requirement": "REQ-OPS-02",
+        "risk": "medium",
+        "method": "GET",
+        "path": "/inventory/sync-status",
+        "mutating": false
+      },
+      "verdict": "WARN",
+      "checks": [
+        {
+          "name": "status",
+          "passed": true,
+          "detail": ""
+        }
+      ],
+      "drifts": [],
+      "differences": [],
+      "differences_suppressed": 0,
+      "stability": {
+        "baseline": {
+          "repeats": 3,
+          "verdict": "STABLE",
+          "statuses": [
+            200,
+            200,
+            200
+          ],
+          "p50_ms": 0.54,
+          "max_ms": 0.58,
+          "volatile_paths": [],
+          "detail": "identical status, shape and body across all samples"
+        },
+        "candidate": {
+          "repeats": 3,
+          "verdict": "FLAKY_STATUS",
+          "statuses": [
+            200,
+            503,
+            200
+          ],
+          "p50_ms": 0.52,
+          "max_ms": 0.52,
+          "volatile_paths": [],
+          "detail": "status varied across identical calls: [200, 503]"
+        }
+      },
+      "baseline": {
+        "url": "http://127.0.0.1:8799/legacy/inventory/sync-status",
+        "method": "GET",
+        "status": 200,
+        "elapsed_ms": 0.54,
+        "attempts": 1,
+        "json_error": null,
+        "transport_error": null,
+        "request_headers": {},
+        "response_headers": {
+          "server": "parity-gate-mock Python/3.13.5",
+          "date": "Sat, 12 Sep 2026 04:07:17 GMT",
+          "content-type": "application/json",
+          "content-length": "32",
+          "cache-control": "no-store"
+        },
+        "body": {
+          "status": "idle",
+          "pending": 0
+        },
+        "body_text_sha256": "c5395ca0c0f52eb1c29a4e8e76c58c26d8e12986b9399185f6894f7e1a2f24b6",
+        "body_text_preview": null
+      },
+      "candidate": {
+        "url": "http://127.0.0.1:8799/next/inventory/sync-status",
+        "method": "GET",
+        "status": 200,
+        "elapsed_ms": 0.52,
+        "attempts": 1,
+        "json_error": null,
+        "transport_error": null,
+        "request_headers": {},
+        "response_headers": {
+          "server": "parity-gate-mock Python/3.13.5",
+          "date": "Sat, 12 Sep 2026 04:07:17 GMT",
+          "content-type": "application/json",
+          "content-length": "32",
+          "cache-control": "no-store"
+        },
+        "body": {
+          "status": "idle",
+          "pending": 0
+        },
+        "body_text_sha256": "c5395ca0c0f52eb1c29a4e8e76c58c26d8e12986b9399185f6894f7e1a2f24b6",
+        "body_text_preview": null
+      },
+      "schema": {},
+      "error": "parity comparison skipped: candidate is FLAKY_STATUS across 3 identical calls. Stabilise the endpoint before trusting any diff taken from it.",
+      "previous_hash": "39e643c51e06eeeb4f2e7f098a9c68628b41cdc671da17bb727d1f6f3c8a7eab",
+      "hash": "07a62a4133006678c7c2cc62cf1225f59a7ed2a3c80a4a4ee21dd897c2d57267"
+    }
+  ]
+}

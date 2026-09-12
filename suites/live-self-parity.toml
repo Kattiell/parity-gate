@@ -1,0 +1,73 @@
+name = "live-self-parity"
+description = """
+A real API compared against itself over the network.
+
+This is the measurement to take *before* pointing the tool at a migration: it
+answers "how noisy is this API when nothing has changed?". Every finding this
+run produces is a false alarm waiting to happen, and every path it reports as
+volatile belongs in mask_paths before any real comparison is trusted.
+
+Requires network access, so it is deliberately not part of CI:
+
+    parity-gate run --suite suites/live-self-parity.toml
+"""
+
+[targets.baseline]
+base_url = "https://dummyjson.com"
+
+[targets.candidate]
+base_url = "https://dummyjson.com"
+
+[policy]
+allowed_hosts = ["dummyjson.com"]
+allow_private_networks = false
+allow_mutations = false
+allow_production = false
+timeout_seconds = 15
+max_retries = 1
+repeats = 3
+ignore_array_order = true
+
+[policy.array_keys]
+"$.products" = "id"
+"$.users" = "id"
+"$.carts" = "id"
+
+[[cases]]
+id = "LIVE-001"
+requirement = "REQ-NOISE-01"
+title = "Product listing is stable enough to be used as a baseline"
+risk = "medium"
+method = "GET"
+path = "/products?limit=5"
+expect_status = 200
+required_fields = ["$.products", "$.total", "$.skip", "$.limit"]
+max_latency_ms = 5000
+
+[[cases]]
+id = "LIVE-002"
+requirement = "REQ-NOISE-02"
+title = "Product detail is stable"
+risk = "medium"
+method = "GET"
+path = "/products/1"
+expect_status = 200
+required_fields = ["$.id", "$.title", "$.price"]
+
+[[cases]]
+id = "LIVE-003"
+requirement = "REQ-NOISE-03"
+title = "An unknown id answers with an error status"
+risk = "low"
+method = "GET"
+path = "/products/999999"
+expect_status = [400, 404]
+
+[[cases]]
+id = "LIVE-004"
+requirement = "REQ-NOISE-04"
+title = "Search results are stable across identical queries"
+risk = "medium"
+method = "GET"
+path = "/products/search?q=phone&limit=5"
+expect_status = 200

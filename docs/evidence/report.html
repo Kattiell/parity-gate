@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>parity-gate — demo-catalog</title>
+<style>
+:root {
+  --bg: #f7f7f5; --panel: #ffffff; --ink: #1b1b19; --muted: #6b6b66;
+  --line: #e2e2dd; --pass: #2e7d4f; --warn: #a9741a; --fail: #b3392f; --error: #7a2620;
+  --accent: #3b5bdb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16161a; --panel: #1e1e23; --ink: #ececea; --muted: #9a9a95;
+    --line: #32323a; --pass: #5fbf85; --warn: #d8a74a; --fail: #e4685c; --error: #f08f84;
+    --accent: #8aa2ff;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 16px; margin: 36px 0 12px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--muted); }
+h4 { font-size: 13px; margin: 16px 0 6px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--muted); }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px; }
+pre { background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 12px; overflow-x: auto; }
+.muted { color: var(--muted); font-size: 13px; }
+.err { color: var(--fail); }
+.hero { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 24px; }
+.verdict { display: inline-block; font-size: 13px; font-weight: 700; letter-spacing: 0.1em;
+  padding: 5px 12px; border-radius: 999px; border: 1px solid currentColor; }
+.verdict.pass { color: var(--pass); } .verdict.warn { color: var(--warn); }
+.verdict.fail { color: var(--fail); } .verdict.error { color: var(--error); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px; margin-top: 20px; }
+.stat b { display: block; font-size: 26px; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.06em; }
+.meta { margin-top: 18px; font-size: 13px; color: var(--muted); }
+.meta div { margin-top: 3px; }
+table { width: 100%; border-collapse: collapse; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line);
+  vertical-align: top; }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+tr.detail > td { background: transparent; padding-top: 0; }
+tr.v-pass + tr.detail { display: none; }
+table.inner { border-radius: 8px; margin-bottom: 4px; }
+table.inner th, table.inner td { padding: 6px 10px; font-size: 12.5px; }
+.badge { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; padding: 3px 8px;
+  border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.badge.pass { color: var(--pass); } .badge.warn { color: var(--warn); }
+.badge.fail { color: var(--fail); } .badge.error { color: var(--error); }
+.badge.skipped { color: var(--muted); }
+.sev.breaking { color: var(--fail); font-weight: 700; }
+.sev.risky { color: var(--warn); font-weight: 700; }
+.sev.additive { color: var(--muted); }
+.scroll { overflow-x: auto; }
+footer { margin-top: 40px; font-size: 12px; color: var(--muted); }
+</style></head>
+<body><div class="wrap">
+<div class="hero">
+  <h1>demo-catalog</h1>
+  <p class="muted">Contract parity between two API versions</p>
+  <p><span class="verdict fail">FAIL</span></p>
+  <div class="stats">
+    <div class="stat"><b>6</b><span>cases</span></div>
+    <div class="stat"><b>7</b><span>breaking drifts</span></div>
+    <div class="stat"><b>4</b><span>value differences</span></div>
+    <div class="stat"><b>1</b><span>unstable endpoints</span></div>
+  </div>
+  <div class="meta">
+    <div>baseline &nbsp;<code>http://127.0.0.1:8799/legacy</code></div>
+    <div>candidate <code>http://127.0.0.1:8799/next</code></div>
+    <div>run <code>20260912T040717Z-a35ce1</code> · finished 2026-09-12T04:07:17Z · chain <code>07a62a4133006678</code></div>
+  </div>
+</div>
+
+<h2>Cases</h2>
+<div class="scroll"><table>
+<thead><tr><th>Verdict</th><th>Case</th><th>Requirement</th><th>Risk</th>
+<th>Drift</th><th>Diffs</th><th>Stability</th></tr></thead>
+<tbody>
+<tr class="v-fail">
+  <td><span class="badge fail">FAIL</span></td>
+  <td><code>CAT-001</code><div class="muted">Product listing keeps its pagination envelope and item contract</div></td>
+  <td>REQ-CAT-01</td>
+  <td>critical</td>
+  <td>5 <b>(3 breaking)</b></td>
+  <td>2</td>
+  <td>STABLE</td>
+</tr>
+<tr class="detail"><td colspan="7"><h4>Contract drift</h4><table class="inner"><thead><tr><th>Severity</th><th>Kind</th><th>Path</th><th>Detail</th></tr></thead><tbody><tr><td><span class="sev breaking">breaking</span></td><td><code>NULLABLE_ADDED</code></td><td><code>$.products[].discount</code></td><td>candidate can return null where baseline never did ([&#x27;number&#x27;] -&gt; [&#x27;null&#x27;, &#x27;number&#x27;])</td></tr><tr><td><span class="sev breaking">breaking</span></td><td><code>TYPE_CHANGED</code></td><td><code>$.products[].price</code></td><td>incompatible type change ([&#x27;number&#x27;] -&gt; [&#x27;string&#x27;])</td></tr><tr><td><span class="sev breaking">breaking</span></td><td><code>FIELD_REMOVED</code></td><td><code>$.products[].stock</code></td><td>present in baseline but absent from candidate (was always present)</td></tr><tr><td><span class="sev additive">additive</span></td><td><code>FIELD_ADDED</code></td><td><code>$.products[].internalCost</code></td><td>new in candidate; harmless for consumers that ignore unknown fields</td></tr><tr><td><span class="sev additive">additive</span></td><td><code>FIELD_ADDED</code></td><td><code>$.products[].warehouseId</code></td><td>new in candidate; harmless for consumers that ignore unknown fields</td></tr></tbody></table><h4>Value differences</h4><table class="inner"><thead><tr><th>Kind</th><th>Path</th><th>Baseline</th><th>Candidate</th></tr></thead><tbody><tr><td><code>ORDER_ONLY</code></td><td><code>$.products</code></td><td><code>[1, 2, 3, 4]</code></td><td><code>[4, 3, 2, 1]</code></td></tr><tr><td><code>VALUE</code></td><td><code>$.total</code></td><td><code>4</code></td><td><code>3</code></td></tr></tbody></table><p class="muted">17 further difference(s) folded away: they restate the contract drift above.</p></td></tr>
+<tr class="v-pass">
+  <td><span class="badge pass">PASS</span></td>
+  <td><code>CAT-002</code><div class="muted">Product detail is byte-for-byte unchanged (not part of the migration)</div></td>
+  <td>REQ-CAT-02</td>
+  <td>high</td>
+  <td>0</td>
+  <td>0</td>
+  <td>STABLE</td>
+</tr>
+<tr class="detail"><td colspan="7"><p class="muted">No findings.</p></td></tr>
+<tr class="v-fail">
+  <td><span class="badge fail">FAIL</span></td>
+  <td><code>CAT-003</code><div class="muted">An unknown product id still answers 404, not an empty success</div></td>
+  <td>REQ-CAT-03</td>
+  <td>high</td>
+  <td>3 <b>(2 breaking)</b></td>
+  <td>0</td>
+  <td>STABLE</td>
+</tr>
+<tr class="detail"><td colspan="7"><h4>Failed assertions</h4><ul><li><code>status</code> &mdash; expected [404], got 200</li></ul><h4>Contract drift</h4><table class="inner"><thead><tr><th>Severity</th><th>Kind</th><th>Path</th><th>Detail</th></tr></thead><tbody><tr><td><span class="sev breaking">breaking</span></td><td><code>FIELD_REMOVED</code></td><td><code>$.code</code></td><td>present in baseline but absent from candidate (was always present)</td></tr><tr><td><span class="sev breaking">breaking</span></td><td><code>FIELD_REMOVED</code></td><td><code>$.error</code></td><td>present in baseline but absent from candidate (was always present)</td></tr><tr><td><span class="sev additive">additive</span></td><td><code>FIELD_ADDED</code></td><td><code>$.data</code></td><td>new in candidate; harmless for consumers that ignore unknown fields</td></tr></tbody></table><h4>Value differences</h4><p class="muted">3 further difference(s) folded away: they restate the contract drift above.</p></td></tr>
+<tr class="v-fail">
+  <td><span class="badge fail">FAIL</span></td>
+  <td><code>SEC-001</code><div class="muted">Internal cost data is never exposed on the public catalogue</div></td>
+  <td>REQ-SEC-01</td>
+  <td>critical</td>
+  <td>4 <b>(2 breaking)</b></td>
+  <td>2</td>
+  <td>STABLE</td>
+</tr>
+<tr class="detail"><td colspan="7"><h4>Failed assertions</h4><ul><li><code>forbidden_field</code> &mdash; $.products[].internalCost must not be exposed but is present</li></ul><h4>Contract drift</h4><table class="inner"><thead><tr><th>Severity</th><th>Kind</th><th>Path</th><th>Detail</th></tr></thead><tbody><tr><td><span class="sev breaking">breaking</span></td><td><code>TYPE_CHANGED</code></td><td><code>$.products[].price</code></td><td>incompatible type change ([&#x27;number&#x27;] -&gt; [&#x27;string&#x27;])</td></tr><tr><td><span class="sev breaking">breaking</span></td><td><code>FIELD_REMOVED</code></td><td><code>$.products[].stock</code></td><td>present in baseline but absent from candidate (was always present)</td></tr><tr><td><span class="sev additive">additive</span></td><td><code>FIELD_ADDED</code></td><td><code>$.products[].internalCost</code></td><td>new in candidate; harmless for consumers that ignore unknown fields</td></tr><tr><td><span class="sev additive">additive</span></td><td><code>FIELD_ADDED</code></td><td><code>$.products[].warehouseId</code></td><td>new in candidate; harmless for consumers that ignore unknown fields</td></tr></tbody></table><h4>Value differences</h4><table class="inner"><thead><tr><th>Kind</th><th>Path</th><th>Baseline</th><th>Candidate</th></tr></thead><tbody><tr><td><code>ORDER_ONLY</code></td><td><code>$.products</code></td><td><code>[1, 2]</code></td><td><code>[2, 1]</code></td></tr><tr><td><code>VALUE</code></td><td><code>$.total</code></td><td><code>2</code></td><td><code>1</code></td></tr></tbody></table><p class="muted">8 further difference(s) folded away: they restate the contract drift above.</p></td></tr>
+<tr class="v-warn">
+  <td><span class="badge warn">WARN</span></td>
+  <td><code>OPS-001</code><div class="muted">Health endpoint answers and reports uptime</div></td>
+  <td>REQ-OPS-01</td>
+  <td>low</td>
+  <td>0</td>
+  <td>0</td>
+  <td>VOLATILE_BODY</td>
+</tr>
+<tr class="detail"><td colspan="7"><h4>Stability &mdash; both sides</h4><p><code>VOLATILE_BODY</code> over 3 calls: values changed between identical calls; add the suggested paths to policy.mask_paths to stop diffing noise</p><pre>mask_paths = [
+  "$.uptimeSeconds"
+]</pre></td></tr>
+<tr class="v-warn">
+  <td><span class="badge warn">WARN</span></td>
+  <td><code>OPS-002</code><div class="muted">Inventory sync status is stable enough to be compared at all</div></td>
+  <td>REQ-OPS-02</td>
+  <td>medium</td>
+  <td>0</td>
+  <td>0</td>
+  <td>FLAKY_STATUS</td>
+</tr>
+<tr class="detail"><td colspan="7"><p class="err">parity comparison skipped: candidate is FLAKY_STATUS across 3 identical calls. Stabilise the endpoint before trusting any diff taken from it.</p><h4>Stability &mdash; candidate</h4><p><code>FLAKY_STATUS</code> over 3 calls: status varied across identical calls: [200, 503]</p></td></tr>
+</tbody></table></div>
+
+<h2>Traceability</h2>
+<div class="scroll"><table>
+<thead><tr><th>Requirement</th><th>Cases</th><th>Worst verdict</th></tr></thead>
+<tbody>
+<tr><td>REQ-CAT-01</td><td><code>CAT-001</code></td><td><span class="badge fail">FAIL</span></td></tr>
+<tr><td>REQ-CAT-02</td><td><code>CAT-002</code></td><td><span class="badge pass">PASS</span></td></tr>
+<tr><td>REQ-CAT-03</td><td><code>CAT-003</code></td><td><span class="badge fail">FAIL</span></td></tr>
+<tr><td>REQ-OPS-01</td><td><code>OPS-001</code></td><td><span class="badge warn">WARN</span></td></tr>
+<tr><td>REQ-OPS-02</td><td><code>OPS-002</code></td><td><span class="badge warn">WARN</span></td></tr>
+<tr><td>REQ-SEC-01</td><td><code>SEC-001</code></td><td><span class="badge fail">FAIL</span></td></tr>
+</tbody></table></div>
+
+<footer>Generated by parity-gate. Records are hash-chained; run
+<code>parity-gate verify</code> against the evidence directory to confirm this
+report still matches the data it was rendered from.</footer>
+</div></body></html>

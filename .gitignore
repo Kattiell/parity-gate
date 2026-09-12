@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets — never commit real credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Evidence produced by local runs. The sample bundle checked into
+# docs/evidence/ is committed on purpose: it is what the README quotes.
+/evidence/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

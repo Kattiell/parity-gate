@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "parity-gate"
+version = "0.1.0"
+description = "A CI gate that proves an API rewrite did not break the contract: schema-drift detection, legacy-vs-candidate parity diffing, flakiness triage and a tamper-evident evidence trail."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Gabriel Caetano", email = "gabrielcaetanopf.contato@gmail.com" }]
+keywords = ["qa", "testing", "contract-testing", "schema-drift", "api-testing", "regression", "flaky-tests"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Testing",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[project.scripts]
+parity-gate = "parity_gate.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Kattiell/parity-gate"
+Issues = "https://github.com/Kattiell/parity-gate/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = ["integration: boots the local mock server and runs the full pipeline"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "S", "RUF"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S105", "S106"]
+"src/parity_gate/mock/*" = ["S311"]

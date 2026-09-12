@@ -1,0 +1,71 @@
+# Security
+
+## Reporting a vulnerability
+
+Open a [private security advisory](https://github.com/Kattiell/parity-gate/security/advisories/new)
+rather than a public issue. This is a personal project, not a product: expect a
+reply within a few days, not an SLA.
+
+## Threat model
+
+`parity-gate` is a test tool that is handed credentials and pointed at internal
+services, and its output gets attached to tickets and uploaded as CI artifacts.
+Three things follow from that.
+
+### It must not leak what it is given
+
+- Credentials live in environment variables. A suite stores the variable *name*
+  (`auth = "env:NAME"`), never a value, and a suite containing something shaped
+  like a live token is refused before it runs.
+- Everything written to disk passes through `redaction.py` first: sensitive
+  headers by name, sensitive JSON keys at any depth, and known credential shapes
+  (JWT, `Bearer …`, `ghp_…`, `xox…`, `AKIA…`, `sk-…`, `AIza…`, PEM blocks,
+  `user:pass@host` in URLs) plus personal data (e-mail, CPF, CNPJ, card numbers)
+  anywhere in a value.
+- Response bodies are capped in the evidence file so a large payload cannot
+  balloon an artifact.
+- The integration test asserts that a token supplied through the environment
+  does not appear anywhere in the serialised run.
+
+### It must not become the incident
+
+- **Host allow-list.** `policy.allowed_hosts` is mandatory and has no implicit
+  allow-all. A host not on the list is refused.
+- **Production guard.** A hostname containing `prod`, `prd`, `producao` or
+  `production` is refused unless `--allow-production` is passed explicitly.
+- **Writes are doubly gated.** A non-idempotent method runs only when the case
+  declares `mutating = true` *and* the run passes `--allow-mutations`.
+- **Private networks are opt-in.** Loopback and RFC1918 targets require
+  `allow_private_networks = true`, so a suite cannot be aimed at internal
+  infrastructure by accident.
+- **Redirects are re-validated.** Every hop is checked against the same
+  allow-list, so a staging host that 302s to production does not get followed.
+- **Fail before sending.** Every URL and method is validated up front; a
+  misconfigured run makes zero requests.
+
+### Its output must be trustworthy
+
+Records are hash-chained: each record's hash covers its content and the hash of
+the record before it, and the chain head is written to a manifest alongside the
+SHA-256 of every file. `parity-gate verify` recomputes both.
+
+This detects accidental alteration — a truncated upload, a partially synced
+artifact, a report edited by hand before being pasted into a ticket. It is not
+proof against a determined author, who can recompute the chain. It is not
+claimed to be.
+
+## Supply chain
+
+The runtime has **zero third-party dependencies**; it is standard library only.
+`ruff` and `pytest` are development dependencies and are not imported by the
+tool. CI runs with `permissions: contents: read` and no secrets, and the tool
+scans its own repository for credential-shaped strings on every build.
+
+## Known limits
+
+- Redaction is pattern-based. A secret in a format nobody has seen survives it.
+  Review evidence before attaching it to a public issue.
+- The production guard matches on hostname substrings. An environment whose
+  production host does not say "prod" is not covered by it — the host allow-list
+  is the control that is.
+- Hash chaining detects alteration, not forgery.

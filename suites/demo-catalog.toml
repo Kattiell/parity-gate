@@ -1,0 +1,100 @@
+name = "demo-catalog"
+description = """
+A catalogue service being rewritten. The baseline is the API consumers were
+built against; the candidate is the replacement. Both are served by the bundled
+mock, so this suite runs offline and produces the same findings every time.
+"""
+
+[targets.baseline]
+base_url = "http://127.0.0.1:8799/legacy"
+
+[targets.candidate]
+base_url = "http://127.0.0.1:8799/next"
+# Credentials, when a real target needs them, are referenced by name only:
+# auth = "env:PARITY_CANDIDATE_TOKEN"
+
+[policy]
+# There is no implicit allow-all. The run can reach these hosts and nothing else.
+allowed_hosts = ["127.0.0.1"]
+allow_private_networks = true   # the mock is on loopback
+allow_mutations = false         # this suite is read-only by construction
+allow_production = false
+timeout_seconds = 5
+# Deliberately 0: retrying a 503 would paper over the intermittent endpoint
+# this suite is supposed to expose.
+max_retries = 0
+# Call each endpoint three times before comparing, so flakiness is measured
+# rather than discovered halfway through triage.
+repeats = 3
+# Values that differ on every call by definition. Diffing them would bury the
+# real findings; leaving them unmasked is why report fatigue happens.
+mask_paths = ["$.meta.requestId", "$.meta.generatedAt"]
+ignore_array_order = true
+float_tolerance = 0.0
+
+# Compare collections by identity instead of by position. Without this, a page
+# that comes back in a different order reports a difference on every field of
+# every item and the one real regression is lost in the noise.
+[policy.array_keys]
+"$.products" = "id"
+
+[[cases]]
+id = "CAT-001"
+requirement = "REQ-CAT-01"
+title = "Product listing keeps its pagination envelope and item contract"
+risk = "critical"
+method = "GET"
+path = "/products?limit=4"
+expect_status = 200
+required_fields = ["$.products", "$.total", "$.skip", "$.limit"]
+max_latency_ms = 2000
+
+[[cases]]
+id = "CAT-002"
+requirement = "REQ-CAT-02"
+title = "Product detail is byte-for-byte unchanged (not part of the migration)"
+risk = "high"
+method = "GET"
+path = "/products/1"
+expect_status = 200
+required_fields = ["$.id", "$.price", "$.stock"]
+
+[[cases]]
+id = "CAT-003"
+requirement = "REQ-CAT-03"
+title = "An unknown product id still answers 404, not an empty success"
+risk = "high"
+method = "GET"
+path = "/products/999"
+expect_status = 404
+
+[[cases]]
+id = "SEC-001"
+requirement = "REQ-SEC-01"
+title = "Internal cost data is never exposed on the public catalogue"
+risk = "critical"
+method = "GET"
+path = "/products?limit=2"
+expect_status = 200
+forbidden_fields = ["$.products[].internalCost", "$.products[].margin"]
+
+[[cases]]
+id = "OPS-001"
+requirement = "REQ-OPS-01"
+title = "Health endpoint answers and reports uptime"
+risk = "low"
+method = "GET"
+path = "/health"
+expect_status = 200
+required_fields = ["$.status"]
+# No mask on $.uptimeSeconds on purpose: this case demonstrates the tool
+# detecting a noisy field and proposing the mask itself.
+
+[[cases]]
+id = "OPS-002"
+requirement = "REQ-OPS-02"
+title = "Inventory sync status is stable enough to be compared at all"
+risk = "medium"
+method = "GET"
+path = "/inventory/sync-status"
+expect_status = 200

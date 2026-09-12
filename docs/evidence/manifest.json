@@ -1,0 +1,11 @@
+{
+  "run_id": "20260912T040717Z-a35ce1",
+  "generated_at": "2026-09-12T04:07:17Z",
+  "tool_version": "0.1.0",
+  "chain_head": "07a62a4133006678c7c2cc62cf1225f59a7ed2a3c80a4a4ee21dd897c2d57267",
+  "files": {
+    "run.json": "61ce3784a9340ce8dc83b24e37f73689a248c766cbbebdcfb53529bb9f4fa78e",
+    "report.md": "15a3ee38cbd256bfc7a6856c14212583a13534c850abc5df99366d6c445de620",
+    "report.html": "b4679154cfb44c15ce671e22a34e4a84aea903f67a1687d0af32603e614fa581"
+  }
+}
