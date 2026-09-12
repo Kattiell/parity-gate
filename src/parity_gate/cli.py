@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import sys
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -33,6 +34,15 @@ EXIT_GATE_FAILED = 2
 EXIT_REFUSED = 3
 
 _COLORS = {PASS: "\033[32m", WARN: "\033[33m", FAIL: "\033[31m", ERROR: "\033[35m"}
+
+_FILTER_HELP = (
+    "only run cases whose id or requirement matches this glob, or whose title "
+    "contains it; repeatable"
+)
+_KEEP_HELP = (
+    "after writing, keep only the N most recent evidence bundles in the "
+    "directory and delete the rest"
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -78,6 +88,10 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="permit hosts that look like production; say it out loud or it will not happen",
     )
+    run.add_argument(
+        "--filter", action="append", default=[], metavar="PATTERN", help=_FILTER_HELP
+    )
+    run.add_argument("--keep", type=int, default=None, metavar="N", help=_KEEP_HELP)
     run.add_argument("--quiet", action="store_true", help="only print the final summary")
     run.set_defaults(handler=_cmd_run)
 
@@ -91,6 +105,7 @@ def _parser() -> argparse.ArgumentParser:
         help="which of the three ways to use the tool to demonstrate",
     )
     demo.add_argument("--evidence", type=Path, default=Path("evidence"))
+    demo.add_argument("--keep", type=int, default=None)
     demo.add_argument("--strict", action="store_true")
     demo.add_argument("--quiet", action="store_true")
     demo.set_defaults(handler=_cmd_demo)
@@ -112,6 +127,9 @@ def _parser() -> argparse.ArgumentParser:
         default=None,
         help="record from this base URL instead of targets.candidate (still allow-listed)",
     )
+    record.add_argument(
+        "--filter", action="append", default=[], metavar="PATTERN", help=_FILTER_HELP
+    )
     record.add_argument("--with-mock", action="store_true")
     record.add_argument("--quiet", action="store_true")
     record.set_defaults(handler=_cmd_record)
@@ -124,6 +142,10 @@ def _parser() -> argparse.ArgumentParser:
     stability.add_argument("--evidence", type=Path, default=Path("evidence"))
     stability.add_argument("--strict", action="store_true")
     stability.add_argument("--with-mock", action="store_true")
+    stability.add_argument(
+        "--filter", action="append", default=[], metavar="PATTERN", help=_FILTER_HELP
+    )
+    stability.add_argument("--keep", type=int, default=None, metavar="N", help=_KEEP_HELP)
     stability.add_argument("--quiet", action="store_true")
     stability.set_defaults(handler=_cmd_stability)
 
@@ -159,6 +181,8 @@ def _cmd_demo(args: argparse.Namespace) -> int:
                 strict=args.strict,
                 with_mock=True,
                 quiet=args.quiet,
+                filter=[],
+                keep=args.keep,
             )
         )
 
@@ -171,6 +195,8 @@ def _cmd_demo(args: argparse.Namespace) -> int:
             allow_mutations=False,
             allow_production=False,
             quiet=args.quiet,
+            filter=[],
+            keep=args.keep,
         )
     )
 
@@ -181,6 +207,10 @@ def _cmd_run(args: argparse.Namespace) -> int:
     except suite_module.SuiteError as exc:
         _err(str(exc))
         return EXIT_USAGE
+
+    refused = _apply_filter(loaded, getattr(args, "filter", []))
+    if refused:
+        return refused
 
     loaded.policy.allow_mutations = loaded.policy.allow_mutations or args.allow_mutations
     loaded.policy.allow_production = loaded.policy.allow_production or args.allow_production
@@ -217,7 +247,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
     finally:
         _stop_mock(server)
 
-    bundle = _write_bundle(run, Path(args.evidence))
+    bundle = _write_bundle(run, Path(args.evidence), getattr(args, 'keep', None))
 
     summary = run.to_dict()["summary"]
     print()
@@ -267,13 +297,45 @@ def _stop_mock(server) -> None:  # type: ignore[no-untyped-def]
         server.server_close()
 
 
-def _write_bundle(run, root: Path) -> Path:  # type: ignore[no-untyped-def]
+def _apply_filter(loaded, patterns: list[str]) -> int:  # type: ignore[no-untyped-def]
+    """Narrow the suite in place. Returns an exit code, or 0 to carry on."""
+    if not patterns:
+        return EXIT_OK
+    chosen = loaded.select(patterns)
+    if not chosen:
+        _err(f"no case matches {patterns}. The suite has: " + ", ".join(c.id for c in loaded.cases))
+        return EXIT_USAGE
+    loaded.cases = chosen
+    return EXIT_OK
+
+
+def _prune_bundles(root: Path, keep: int | None) -> int:
+    """Delete all but the ``keep`` newest bundles. Returns how many were removed.
+
+    Only directories that carry a manifest are touched: an evidence directory
+    someone also keeps notes in must not lose them to a retention flag.
+    """
+    if keep is None or keep < 1 or not root.is_dir():
+        return 0
+    bundles = sorted(
+        (d for d in root.iterdir() if d.is_dir() and (d / "manifest.json").is_file()),
+        key=lambda d: d.name,
+    )
+    removed = 0
+    for stale in bundles[: max(0, len(bundles) - keep)]:
+        shutil.rmtree(stale, ignore_errors=True)
+        removed += 1
+    return removed
+
+
+def _write_bundle(run, root: Path, keep: int | None = None) -> Path:  # type: ignore[no-untyped-def]
     """Write the evidence bundle for a run and return its directory."""
     bundle = root / run.run_id
     files = evidence.write_run(run, bundle)
     files["report.md"] = evidence.write_text(bundle / "report.md", report.render_markdown(run))
     files["report.html"] = evidence.write_text(bundle / "report.html", report.render_html(run))
     evidence.write_manifest(bundle, files, run.chain_head, run.run_id)
+    _prune_bundles(root, keep)
     return bundle
 
 
@@ -283,6 +345,10 @@ def _cmd_record(args: argparse.Namespace) -> int:
     except suite_module.SuiteError as exc:
         _err(str(exc))
         return EXIT_USAGE
+
+    refused = _apply_filter(loaded, getattr(args, "filter", []))
+    if refused:
+        return refused
 
     destination = args.out or loaded.contract_path
     if destination is None:
@@ -364,7 +430,7 @@ def _cmd_stability(args: argparse.Namespace) -> int:
     finally:
         _stop_mock(server)
 
-    bundle = _write_bundle(run, Path(args.evidence))
+    bundle = _write_bundle(run, Path(args.evidence), getattr(args, 'keep', None))
     suggestions = _mask_suggestions(run)
     summary = run.to_dict()["summary"]
 

@@ -184,7 +184,11 @@ def redact(value: Any, *, _depth: int = 0) -> Any:
     if isinstance(value, dict):
         out: dict[str, Any] = {}
         for key, item in value.items():
-            if _normalise_key(key) in SENSITIVE_KEYS:
+            if _normalise_key(key) in SENSITIVE_KEYS and item not in (None, "", [], {}):
+                # An empty value under a sensitive key holds no secret, and
+                # masking it destroys the one thing the reader needs: whether
+                # the credential was sent at all. "[REDACTED]" where the API
+                # returned null is a lie that costs a debugging session.
                 out[key] = MASK
             else:
                 out[key] = redact(item, _depth=_depth + 1)

@@ -225,3 +225,25 @@ def test_workers_default_to_one_and_cannot_be_zero(tmp_path: Path) -> None:
     hosts = 'allowed_hosts = ["127.0.0.1"]'
     body = MINIMAL.replace(hosts, f"{hosts}\nworkers = 0")
     assert load(write(tmp_path, body)).policy.workers == 1
+
+
+def test_a_filter_matches_by_id_requirement_or_title(tmp_path: Path) -> None:
+    body = MINIMAL + """
+[[cases]]
+id = "B-2"
+requirement = "REQ-ORDERS"
+title = "Orders listing"
+method = "GET"
+path = "/orders"
+"""
+    suite = load(write(tmp_path, body))
+    assert [c.id for c in suite.select([])] == ["A-1", "B-2"]          # no filter: everything
+    assert [c.id for c in suite.select(["B-*"])] == ["B-2"]            # glob on the id
+    assert [c.id for c in suite.select(["REQ-ORDERS"])] == ["B-2"]     # the requirement
+    assert [c.id for c in suite.select(["orders"])] == ["B-2"]         # substring of the title
+    assert suite.select(["nothing-like-this"]) == []
+
+
+def test_a_case_matching_two_patterns_is_not_run_twice(tmp_path: Path) -> None:
+    suite = load(write(tmp_path, MINIMAL))
+    assert [c.id for c in suite.select(["A-*", "A-1"])] == ["A-1"]

@@ -142,6 +142,8 @@ class _Handler(BaseHTTPRequestHandler):
 
         if rest == ["health"]:
             return self._health(variant)
+        if rest == ["whoami"]:
+            return self._whoami()
         if rest == ["inventory", "sync-status"]:
             return self._sync_status(variant)
         if rest == ["products"]:
@@ -190,6 +192,12 @@ class _Handler(BaseHTTPRequestHandler):
             return self._send(404, {"error": "product not found", "code": "PRODUCT_NOT_FOUND"})
         # Defect: the "tolerant" handler turns a missing record into a success.
         self._send(200, {"data": None})
+
+    def _whoami(self) -> None:
+        """Echo the credential back, so a test can prove two things at once:
+        that the header actually reached the server, and that it does not
+        survive into the evidence file afterwards."""
+        self._send(200, {"authorization": self.headers.get("Authorization")})
 
     def _health(self, variant: str) -> None:
         server: MockServer = self.server  # type: ignore[assignment]

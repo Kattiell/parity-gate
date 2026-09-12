@@ -14,6 +14,7 @@ from __future__ import annotations
 import os
 import tomllib
 from dataclasses import dataclass, field
+from fnmatch import fnmatch
 from pathlib import Path
 from typing import Any
 
@@ -135,6 +136,30 @@ class Suite:
 
     def repeats_for(self, case: Case) -> int:
         return case.repeats if case.repeats is not None else self.repeats
+
+    def select(self, patterns: list[str]) -> list[Case]:
+        """Cases matching any of ``patterns``; all of them when none is given.
+
+        A pattern is a glob against the case id or its requirement, or a
+        case-insensitive substring of the title. One shape covers "just this
+        case", "everything for this requirement" and "anything about orders",
+        which is what people actually want at three in the afternoon with a
+        two-hundred-case suite and one failing endpoint.
+        """
+        if not patterns:
+            return list(self.cases)
+
+        chosen: list[Case] = []
+        for case in self.cases:
+            for pattern in patterns:
+                if (
+                    fnmatch(case.id, pattern)
+                    or (case.requirement and fnmatch(case.requirement, pattern))
+                    or pattern.lower() in case.title.lower()
+                ):
+                    chosen.append(case)
+                    break
+        return chosen
 
     @property
     def contract_path(self) -> Path | None:

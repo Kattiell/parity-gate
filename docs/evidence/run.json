@@ -6,7 +6,7 @@
     "python": "3.13.5",
     "platform": "Windows-11-10.0.26200-SP0"
   },
-  "run_id": "20260912T064339Z-0fd289",
+  "run_id": "20260912T065301Z-ad2a4d",
   "mode": "differential",
   "suite": {
     "name": "demo-catalog",
@@ -34,8 +34,8 @@
     "max_retries": 0,
     "workers": 1
   },
-  "started_at": "2026-09-12T06:43:39Z",
-  "finished_at": "2026-09-12T06:43:39Z",
+  "started_at": "2026-09-12T06:53:01Z",
+  "finished_at": "2026-09-12T06:53:01Z",
   "summary": {
     "verdict": "FAIL",
     "cases": 6,
@@ -103,7 +103,7 @@
       }
     ]
   },
-  "chain_head": "8b648ef2dc623826890b75593c88a3456b42386203cc19fe5f98ffda1eaa418b",
+  "chain_head": "58f2b7116e41d29365da646756469b77951631a60342edce2eb651a0414aac66",
   "records": [
     {
       "case": {
@@ -222,8 +222,8 @@
             200,
             200
           ],
-          "p50_ms": 0.73,
-          "max_ms": 1.18,
+          "p50_ms": 0.66,
+          "max_ms": 1.22,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -236,7 +236,7 @@
             200
           ],
           "p50_ms": 0.6,
-          "max_ms": 0.62,
+          "max_ms": 0.61,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -245,14 +245,14 @@
         "url": "http://127.0.0.1:8799/legacy/products?limit=4",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 1.18,
+        "elapsed_ms": 1.22,
         "attempts": 1,
         "json_error": null,
         "transport_error": null,
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 06:43:39 GMT",
+          "date": "Sat, 12 Sep 2026 06:53:01 GMT",
           "content-type": "application/json",
           "content-length": "658",
           "cache-control": "no-store"
@@ -328,7 +328,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 06:43:39 GMT",
+          "date": "Sat, 12 Sep 2026 06:53:01 GMT",
           "content-type": "application/json",
           "content-length": "780",
           "cache-control": "no-store"
@@ -659,7 +659,7 @@
       },
       "error": null,
       "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
-      "hash": "34842bb2b1807468168555d9c9bc921c5844b97ab672dbe09b31708f0f6e4b2e"
+      "hash": "092c4357ec8a9b27cae24904f9b9df0617c72548dae155133b0c952c0190d2f6"
     },
     {
       "case": {
@@ -712,8 +712,8 @@
             200,
             200
           ],
-          "p50_ms": 0.59,
-          "max_ms": 0.65,
+          "p50_ms": 0.55,
+          "max_ms": 0.62,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -725,8 +725,8 @@
             200,
             200
           ],
-          "p50_ms": 0.62,
-          "max_ms": 0.68,
+          "p50_ms": 0.57,
+          "max_ms": 0.58,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -735,14 +735,14 @@
         "url": "http://127.0.0.1:8799/legacy/products/1",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.65,
+        "elapsed_ms": 0.62,
         "attempts": 1,
         "json_error": null,
         "transport_error": null,
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 06:43:39 GMT",
+          "date": "Sat, 12 Sep 2026 06:53:01 GMT",
           "content-type": "application/json",
           "content-length": "131",
           "cache-control": "no-store"
@@ -765,14 +765,14 @@
         "url": "http://127.0.0.1:8799/next/products/1",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.68,
+        "elapsed_ms": 0.58,
         "attempts": 1,
         "json_error": null,
         "transport_error": null,
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 06:43:39 GMT",
+          "date": "Sat, 12 Sep 2026 06:53:01 GMT",
           "content-type": "application/json",
           "content-length": "131",
           "cache-control": "no-store"
@@ -932,8 +932,8 @@
         }
       },
       "error": null,
-      "previous_hash": "34842bb2b1807468168555d9c9bc921c5844b97ab672dbe09b31708f0f6e4b2e",
-      "hash": "db2151c84e85a4a7d89e559eb41cc29a5527cb872410d72fa7661dcae904fd54"
+      "previous_hash": "092c4357ec8a9b27cae24904f9b9df0617c72548dae155133b0c952c0190d2f6",
+      "hash": "6e7c8faea784da6867d00da875f181b3ed83045c2b352080fc21730184da2247"
     },
     {
       "case": {
@@ -990,8 +990,8 @@
             404,
             404
           ],
-          "p50_ms": 0.59,
-          "max_ms": 0.61,
+          "p50_ms": 0.57,
+          "max_ms": 0.58,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1003,8 +1003,8 @@
             200,
             200
           ],
-          "p50_ms": 0.54,
-          "max_ms": 0.63,
+          "p50_ms": 0.57,
+          "max_ms": 24.71,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -1013,14 +1013,14 @@
         "url": "http://127.0.0.1:8799/legacy/products/999",
         "method": "GET",
         "status": 404,
-        "elapsed_ms": 0.59,
+        "elapsed_ms": 0.58,
         "attempts": 1,
         "json_error": null,
         "transport_error": null,
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 06:43:39 GMT",
+          "date": "Sat, 12 Sep 2026 06:53:01 GMT",
           "content-type": "application/json",
           "content-length": "59",
           "cache-control": "no-store"
@@ -1036,14 +1036,14 @@
         "url": "http://127.0.0.1:8799/next/products/999",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.63,
+        "elapsed_ms": 0.57,
         "attempts": 1,
         "json_error": null,
         "transport_error": null,
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 06:43:39 GMT",
+          "date": "Sat, 12 Sep 2026 06:53:01 GMT",
           "content-type": "application/json",
           "content-length": "14",
           "cache-control": "no-store"
@@ -1104,8 +1104,8 @@
         }
       },
       "error": null,
-      "previous_hash": "db2151c84e85a4a7d89e559eb41cc29a5527cb872410d72fa7661dcae904fd54",
-      "hash": "a53f81e8a1b22e92cc0593173d2ef9c4f9063a430028e30c81289e2e4f6be1c6"
+      "previous_hash": "6e7c8faea784da6867d00da875f181b3ed83045c2b352080fc21730184da2247",
+      "hash": "80b55fd78e24f217b5f44635bf5d05a4d27de3cb7e2fb7184d42d0f9d12b1e0a"
     },
     {
       "case": {
@@ -1199,8 +1199,8 @@
             200,
             200
           ],
-          "p50_ms": 0.53,
-          "max_ms": 0.53,
+          "p50_ms": 0.59,
+          "max_ms": 0.74,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1212,8 +1212,8 @@
             200,
             200
           ],
-          "p50_ms": 0.53,
-          "max_ms": 0.55,
+          "p50_ms": 0.51,
+          "max_ms": 0.61,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -1222,14 +1222,14 @@
         "url": "http://127.0.0.1:8799/legacy/products?limit=2",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.53,
+        "elapsed_ms": 0.74,
         "attempts": 1,
         "json_error": null,
         "transport_error": null,
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 06:43:39 GMT",
+          "date": "Sat, 12 Sep 2026 06:53:01 GMT",
           "content-type": "application/json",
           "content-length": "402",
           "cache-control": "no-store"
@@ -1275,14 +1275,14 @@
         "url": "http://127.0.0.1:8799/next/products?limit=2",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.53,
+        "elapsed_ms": 0.51,
         "attempts": 1,
         "json_error": null,
         "transport_error": null,
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 06:43:39 GMT",
+          "date": "Sat, 12 Sep 2026 06:53:01 GMT",
           "content-type": "application/json",
           "content-length": "461",
           "cache-control": "no-store"
@@ -1586,8 +1586,8 @@
         }
       },
       "error": null,
-      "previous_hash": "a53f81e8a1b22e92cc0593173d2ef9c4f9063a430028e30c81289e2e4f6be1c6",
-      "hash": "a58c3b8124abb646f698946d7fb706cf8e03514fed678ac7bf79d224fbfff44a"
+      "previous_hash": "80b55fd78e24f217b5f44635bf5d05a4d27de3cb7e2fb7184d42d0f9d12b1e0a",
+      "hash": "ed2cee4516d1ee387c1eb4fb34034458a803f421c3375843153403bb4a2ec1b5"
     },
     {
       "case": {
@@ -1630,8 +1630,8 @@
             200,
             200
           ],
-          "p50_ms": 0.51,
-          "max_ms": 0.51,
+          "p50_ms": 0.54,
+          "max_ms": 0.55,
           "volatile_paths": [
             "$.uptimeSeconds"
           ],
@@ -1645,8 +1645,8 @@
             200,
             200
           ],
-          "p50_ms": 0.51,
-          "max_ms": 0.54,
+          "p50_ms": 0.53,
+          "max_ms": 0.58,
           "volatile_paths": [
             "$.uptimeSeconds"
           ],
@@ -1657,14 +1657,14 @@
         "url": "http://127.0.0.1:8799/legacy/health",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.51,
+        "elapsed_ms": 0.54,
         "attempts": 1,
         "json_error": null,
         "transport_error": null,
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 06:43:39 GMT",
+          "date": "Sat, 12 Sep 2026 06:53:01 GMT",
           "content-type": "application/json",
           "content-length": "39",
           "cache-control": "no-store"
@@ -1680,14 +1680,14 @@
         "url": "http://127.0.0.1:8799/next/health",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.54,
+        "elapsed_ms": 0.58,
         "attempts": 1,
         "json_error": null,
         "transport_error": null,
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 06:43:39 GMT",
+          "date": "Sat, 12 Sep 2026 06:53:01 GMT",
           "content-type": "application/json",
           "content-length": "39",
           "cache-control": "no-store"
@@ -1756,8 +1756,8 @@
         }
       },
       "error": null,
-      "previous_hash": "a58c3b8124abb646f698946d7fb706cf8e03514fed678ac7bf79d224fbfff44a",
-      "hash": "7af31302093c5698f94e61c6de3e7dca30334fc828a45dac853c7ec87e6bba48"
+      "previous_hash": "ed2cee4516d1ee387c1eb4fb34034458a803f421c3375843153403bb4a2ec1b5",
+      "hash": "683817ee0830669e1b84e6d1e2d34257573e14d3479d4088a3fa564fc35505da"
     },
     {
       "case": {
@@ -1790,8 +1790,8 @@
             200,
             200
           ],
-          "p50_ms": 0.54,
-          "max_ms": 0.58,
+          "p50_ms": 0.51,
+          "max_ms": 0.6,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1804,7 +1804,7 @@
             200
           ],
           "p50_ms": 0.52,
-          "max_ms": 0.58,
+          "max_ms": 0.56,
           "volatile_paths": [],
           "detail": "status varied across identical calls: [200, 503]"
         }
@@ -1813,14 +1813,14 @@
         "url": "http://127.0.0.1:8799/legacy/inventory/sync-status",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.54,
+        "elapsed_ms": 0.51,
         "attempts": 1,
         "json_error": null,
         "transport_error": null,
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 06:43:39 GMT",
+          "date": "Sat, 12 Sep 2026 06:53:01 GMT",
           "content-type": "application/json",
           "content-length": "32",
           "cache-control": "no-store"
@@ -1843,7 +1843,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 06:43:39 GMT",
+          "date": "Sat, 12 Sep 2026 06:53:01 GMT",
           "content-type": "application/json",
           "content-length": "32",
           "cache-control": "no-store"
@@ -1857,8 +1857,8 @@
       },
       "schema": {},
       "error": "parity comparison skipped: candidate is FLAKY_STATUS across 3 identical calls. Stabilise the endpoint before trusting any diff taken from it.",
-      "previous_hash": "7af31302093c5698f94e61c6de3e7dca30334fc828a45dac853c7ec87e6bba48",
-      "hash": "8b648ef2dc623826890b75593c88a3456b42386203cc19fe5f98ffda1eaa418b"
+      "previous_hash": "683817ee0830669e1b84e6d1e2d34257573e14d3479d4088a3fa564fc35505da",
+      "hash": "58f2b7116e41d29365da646756469b77951631a60342edce2eb651a0414aac66"
     }
   ]
 }

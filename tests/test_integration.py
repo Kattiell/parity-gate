@@ -463,3 +463,81 @@ def test_contract_mode_says_values_were_not_compared(tmp_path: Path, mock: MockS
     summary = Runner(load(suite_path)).execute().to_dict()["summary"]
     assert summary["values_compared"] is False
     assert summary["differences"] is None
+
+
+AUTH_SUITE = """
+name = "auth"
+[targets.baseline]
+base_url = "{base}/legacy"
+[targets.candidate]
+base_url = "{base}/next"
+auth = "env:PARITY_E2E_TOKEN"
+[policy]
+allowed_hosts = ["127.0.0.1"]
+allow_private_networks = true
+repeats = 1
+[[cases]]
+id = "AUTH-1"
+title = "the credential reaches the server"
+method = "GET"
+path = "/whoami"
+"""
+
+
+def test_a_credential_reaches_the_server_and_not_the_evidence(
+    tmp_path: Path, mock: MockServer, monkeypatch
+) -> None:
+    """The end-to-end half of the auth path that unit tests cannot cover.
+
+    `resolved_headers` was tested in isolation; nothing asserted the header was
+    actually sent. The mock echoes it back, so one run proves both that it
+    arrived and that it is gone from the bundle written afterwards.
+    """
+    token = "ghp_E2ECredential1234567"
+    monkeypatch.setenv("PARITY_E2E_TOKEN", token)
+    target = tmp_path / "auth.toml"
+    target.write_text(AUTH_SUITE.format(base=mock.base_url), encoding="utf-8")
+
+    run = Runner(load(target)).execute()
+    record = run.records[0]
+
+    # It arrived: the baseline target carries no credential and echoes null,
+    # the candidate echoes a value. If the header had never been sent, both
+    # sides would be null and this would pass vacuously.
+    assert record.baseline["body"]["authorization"] is None
+    assert record.candidate["body"]["authorization"] == "[REDACTED]"
+
+    serialised = json.dumps(run.to_dict())
+    assert token not in serialised
+    assert "Bearer" not in serialised or "[REDACTED]" in serialised
+
+
+def test_retention_keeps_the_newest_bundles_and_nothing_else(
+    suite_file: Path, tmp_path: Path
+) -> None:
+    out = tmp_path / "evidence"
+    notes = out / "notes-i-keep-here"
+    notes.mkdir(parents=True)
+    (notes / "x.txt").write_text("mine", encoding="utf-8")
+
+    for _ in range(3):
+        main(["run", "--suite", str(suite_file), "--evidence", str(out), "--quiet"])
+    assert len([d for d in out.iterdir() if (d / "manifest.json").is_file()]) == 3
+
+    main(["run", "--suite", str(suite_file), "--evidence", str(out), "--keep", "2", "--quiet"])
+    bundles = [d for d in out.iterdir() if (d / "manifest.json").is_file()]
+    assert len(bundles) == 2
+    # A directory that is not a bundle must survive a retention flag.
+    assert (notes / "x.txt").read_text(encoding="utf-8") == "mine"
+    for bundle in bundles:
+        assert verify(bundle) == []
+
+
+def test_a_filter_that_matches_nothing_names_the_available_cases(
+    suite_file: Path, tmp_path: Path, capsys
+) -> None:
+    code = main(
+        ["run", "--suite", str(suite_file), "--evidence", str(tmp_path), "--filter", "NOPE"]
+    )
+    assert code == 1
+    assert "CAT-001" in capsys.readouterr().err

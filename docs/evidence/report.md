@@ -2,12 +2,12 @@
 
 **Verdict: FAIL**
 
-- Run `20260912T064339Z-0fd289` finished 2026-09-12T06:43:39Z
+- Run `20260912T065301Z-ad2a4d` finished 2026-09-12T06:53:01Z
 - Baseline `http://127.0.0.1:8799/legacy`
 - Candidate `http://127.0.0.1:8799/next`
 - 6 case(s): 1 PASS, 2 WARN, 3 FAIL
 - 7 breaking contract change(s), 4 value difference(s), 1 unstable endpoint(s)
-- Evidence chain head `8b648ef2dc623826`
+- Evidence chain head `58f2b7116e41d293`
 
 ## Cases
 

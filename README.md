@@ -146,7 +146,7 @@ pip install -e ".[dev]"
 parity-gate demo --mode contract         # gate against a recorded contract
 parity-gate demo --mode stability        # measure the noise
 parity-gate demo                         # differential, two live services
-pytest -q                                # 156 tests, no network
+pytest -q                                # 164 tests, no network
 ```
 
 All of it runs against a bundled mock that serves a catalogue API twice — once
@@ -313,9 +313,20 @@ parity-gate run       --suite FILE [--strict] [--evidence DIR] # gate against it
 parity-gate stability --suite FILE                             # measure the noise
 parity-gate verify    DIR                                      # re-check an evidence bundle
 parity-gate scan      PATH...                                  # fail on a credential in a file
-parity-gate demo                                               # offline, bundled mock
+parity-gate demo      [--mode MODE]                            # offline, bundled mock
 parity-gate mock      [--port 8799]                            # serve the mock by hand
 ```
+
+`record`, `run` and `stability` also take:
+
+| Flag | What it does |
+| --- | --- |
+| `--filter PATTERN` | run a subset: a glob against a case id or requirement, or a substring of the title. Repeatable. `--filter 'CAT-*'`, `--filter REQ-SEC-01`, `--filter orders` |
+| `--keep N` | keep only the N most recent evidence bundles and delete the rest. Off by default; only directories carrying a manifest are ever touched |
+
+If the `parity-gate` script is not on your `PATH` — common on Windows, where
+`pip` installs it under `Scripts\` — `python -m parity_gate` is the same
+program and takes the same arguments.
 
 ## How it is built
 
@@ -337,7 +348,7 @@ and installing it should pull nothing.
 | `runner.py` | Orchestration and the verdict rules for all three modes |
 | `mock/server.py` | The two-headed demo API, deterministic down to the flaky endpoint |
 
-**156 tests**, unit and integration, offline. The CI matrix is configured for
+**164 tests**, unit and integration, offline. The CI matrix is configured for
 Python 3.11–3.13 on Linux and Windows; the badge at the top is the honest answer
 to whether it is currently green.
 
@@ -382,7 +393,8 @@ wrong places:
 - **Stability is sampled, not proven.** Three repeats taken back to back find
   frequent flakiness, not flakiness on a slower period than that.
 - **No connection reuse.** Every request opens a fresh socket, so a large suite
-  is slower than it needs to be even with `workers` raised.
+  is slower than it needs to be even with `workers` raised. This is the one
+  finding from the review that is still open.
 - **Redaction is pattern-based.** A secret in a format nobody has seen survives
   it. Read evidence before attaching it to a public issue.
 - **GraphQL, gRPC and streaming are out of scope.** It speaks JSON over HTTP.

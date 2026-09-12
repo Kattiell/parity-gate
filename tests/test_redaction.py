@@ -130,3 +130,15 @@ def test_english_prose_about_tokens_is_not_a_finding() -> None:
 def test_real_http_auth_values_are_still_caught() -> None:
     for value in ("Bearer ghp_16CharsMinimumAA", "Basic Z2FicmllbDpodW50ZXIyMzQ1Ng=="):
         assert redact({"v": value})["v"] == MASK
+
+
+def test_an_empty_value_under_a_sensitive_key_is_left_visible() -> None:
+    """Masking null protects nothing and hides whether anything was sent.
+
+    Found end to end: the mock echoes the Authorization header it received, and
+    the side that sent no credential reported "[REDACTED]" for a null — which
+    made the evidence say the opposite of what happened.
+    """
+    assert redact({"authorization": None})["authorization"] is None
+    assert redact({"token": ""})["token"] == ""
+    assert redact({"password": "hunter2"})["password"] == MASK
