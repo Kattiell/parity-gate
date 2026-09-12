@@ -49,7 +49,15 @@ Three things follow from that.
   `allow_private_networks = true`, so a suite cannot be aimed at internal
   infrastructure by accident.
 - **Redirects are re-validated.** Every hop is checked against the same
-  allow-list, so a staging host that 302s to production does not get followed.
+  allow-list *before* the next request is sent, so a staging host that 302s to
+  production does not get followed.
+- **Credentials are dropped when a redirect changes host.** `Authorization`,
+  `Proxy-Authorization` and `Cookie` are stripped before following a hop to a
+  different scheme, host or port — a token issued for one host must not be
+  replayed to another, even one the allow-list permits.
+- **Connections are pooled per host and owned by one thread.** A `Client` is
+  not thread-safe; the runner keeps one per worker, so a credential set for one
+  target cannot ride a socket shared with another.
 - **Fail before sending.** Every URL, method and credential is resolved up
   front; a misconfigured run makes zero requests.
 - **Retries are off by default.** Beyond hiding flakiness, a retry loop against

@@ -87,6 +87,15 @@ class MockServer(ThreadingHTTPServer):
         super().__init__(address, _Handler)
         self.counters: defaultdict[str, int] = defaultdict(int)
         self.lock = threading.Lock()
+        #: TCP connections accepted. With keep-alive this stays far below the
+        #: number of requests, which is what makes connection reuse testable
+        #: rather than merely claimed.
+        self.connections = 0
+
+    def process_request(self, request, client_address):  # type: ignore[no-untyped-def]
+        with self.lock:
+            self.connections += 1
+        super().process_request(request, client_address)
 
     def tick(self, key: str) -> int:
         with self.lock:

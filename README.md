@@ -146,7 +146,7 @@ pip install -e ".[dev]"
 parity-gate demo --mode contract         # gate against a recorded contract
 parity-gate demo --mode stability        # measure the noise
 parity-gate demo                         # differential, two live services
-pytest -q                                # 164 tests, no network
+pytest -q                                # 180 tests, no network
 ```
 
 All of it runs against a bundled mock that serves a catalogue API twice — once
@@ -181,6 +181,19 @@ item and the one real regression is invisible.
 **Stability is measured before anything is compared.** A diff taken from a flaky
 endpoint is not evidence of anything, so the tool refuses to produce one and
 says why.
+
+**Connections are reused.** A suite sampling each endpoint three times against
+two targets used to pay for a TLS handshake every single call. Measured against
+a live HTTPS API, same network, same minute:
+
+```
+12 calls, connection reused : 0.20s   (16 ms/call)
+12 calls, fresh socket each : 1.25s  (104 ms/call)
+```
+
+The demo run makes 36 requests over **one** TCP connection, which a test
+asserts by counting sockets at the server rather than taking the client's word
+for it.
 
 **Redundant findings are folded.** Four products whose `price` changed type is
 one contract-drift finding, not four value differences. The count of what was
@@ -279,6 +292,10 @@ model in [SECURITY.md](SECURITY.md); the controls:
 - **Writes are doubly gated.** `POST`/`PUT`/`PATCH`/`DELETE` run only when the
   case declares `mutating = true` *and* the run passes `--allow-mutations`.
 - **Private networks are opt-in.**
+- **Credentials do not cross hosts.** A redirect to a different host is
+  followed only after re-validation, and the `Authorization` and `Cookie`
+  headers are dropped before it is: a token issued for one host has no business
+  reaching another, even one that is also on the allow-list.
 - **Fail before sending.** Every URL and method is validated up front; a
   misconfigured run makes zero requests.
 - **Credentials never touch the suite file.** A suite containing something
@@ -344,11 +361,11 @@ and installing it should pull nothing.
 | `redaction.py` | Everything leaving the process, scrubbed |
 | `evidence.py` | Hash-chained records, manifest, traceability matrix, verification |
 | `report.py` | Markdown for tickets, self-contained HTML for CI |
-| `httpclient.py` | `urllib` with explicit timeouts, retries and re-validated redirects |
+| `httpclient.py` | Pooled `http.client`: explicit timeouts, retries, re-validated redirects |
 | `runner.py` | Orchestration and the verdict rules for all three modes |
 | `mock/server.py` | The two-headed demo API, deterministic down to the flaky endpoint |
 
-**164 tests**, unit and integration, offline. The CI matrix is configured for
+**180 tests**, unit and integration, offline. The CI matrix is configured for
 Python 3.11–3.13 on Linux and Windows; the badge at the top is the honest answer
 to whether it is currently green.
 
@@ -392,9 +409,6 @@ wrong places:
   you actually believe in, and review the file before committing it.
 - **Stability is sampled, not proven.** Three repeats taken back to back find
   frequent flakiness, not flakiness on a slower period than that.
-- **No connection reuse.** Every request opens a fresh socket, so a large suite
-  is slower than it needs to be even with `workers` raised. This is the one
-  finding from the review that is still open.
 - **Redaction is pattern-based.** A secret in a format nobody has seen survives
   it. Read evidence before attaching it to a public issue.
 - **GraphQL, gRPC and streaming are out of scope.** It speaks JSON over HTTP.

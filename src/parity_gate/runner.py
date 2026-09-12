@@ -67,13 +67,26 @@ class Runner:
         # promise, and sharing one across workers is the kind of bug that shows
         # up as a flaky result in the tool that exists to diagnose flakiness.
         self._local = threading.local()
+        self._clients: list[Client] = []
 
     @property
     def client(self) -> Client:
         client = getattr(self._local, "client", None)
         if client is None:
             client = self._local.client = Client(self.suite.policy)
+            self._clients.append(client)
         return client
+
+    def close(self) -> None:
+        """Release every pooled connection this run opened.
+
+        Worker threads end when the pool shuts down and their connections would
+        be collected eventually, but "eventually" is not a socket lifetime a
+        long CI run should depend on.
+        """
+        for client in self._clients:
+            client.close()
+        self._clients.clear()
 
     def _map_cases(self, work: Any, on_result: Any = None) -> list[Any]:
         """Run ``work(case)`` over every case and return the results in suite order.
@@ -165,6 +178,7 @@ class Runner:
                 statuses=sorted({r.status for r in probe.responses if r.status is not None}),
                 stability=probe.stability.verdict if probe.stability else "UNKNOWN",
             )
+        self.close()
         return contract
 
     def measure_stability(self, on_case: Any = None) -> Run:
@@ -213,6 +227,7 @@ class Runner:
             run.add(record)
 
         run.finished_at = evidence.utc_now()
+        self.close()
         return run
 
     def execute(self) -> Run:
@@ -226,6 +241,7 @@ class Runner:
             run.add(record)
 
         run.finished_at = evidence.utc_now()
+        self.close()
         return run
 
     # -- one case -----------------------------------------------------------
