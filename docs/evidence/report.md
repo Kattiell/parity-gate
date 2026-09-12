@@ -2,12 +2,12 @@
 
 **Verdict: FAIL**
 
-- Run `20260912T041307Z-4725a2` finished 2026-09-12T04:13:07Z
+- Run `20260912T064339Z-0fd289` finished 2026-09-12T06:43:39Z
 - Baseline `http://127.0.0.1:8799/legacy`
 - Candidate `http://127.0.0.1:8799/next`
 - 6 case(s): 1 PASS, 2 WARN, 3 FAIL
 - 7 breaking contract change(s), 4 value difference(s), 1 unstable endpoint(s)
-- Evidence chain head `4992dcdfbd0c7619`
+- Evidence chain head `8b648ef2dc623826`
 
 ## Cases
 
@@ -52,6 +52,7 @@ _17 further value difference(s) are folded away: they are restatements of the co
 **Failed assertions**
 
 - `status`: expected [404], got 200
+- `status_parity`: baseline answered [404], candidate answered [200]
 
 **Contract drift**
 

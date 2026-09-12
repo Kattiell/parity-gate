@@ -36,6 +36,11 @@ Issues = "https://github.com/Kattiell/parity-gate/issues"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+# The demo suites and their recorded contract ship with the wheel, so
+# `pip install parity-gate && parity-gate demo` works outside a clone.
+parity_gate = ["demo/*.toml", "demo/contracts/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"

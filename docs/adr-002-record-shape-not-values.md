@@ -54,6 +54,20 @@ That is also why the file is written one field per line. A contract nobody can
 read in a pull request gets approved without being read, and then it is a golden
 file again by another name.
 
+### One correction
+
+The first version of this decision claimed a recorded contract "stays valid
+until someone actually changes the API". That was too strong, and a review
+falsified it: a collection that is *empty* on the day the gate runs makes every
+item field look removed, so a healthy service with no matching rows failed the
+build with five breaking findings.
+
+Shape does not rot with data — but shape cannot be *observed* through an empty
+collection either. The fix is to treat that subtree as unobserved rather than
+absent, and to report those paths as "not checked" so the gap is visible rather
+than either alarming or silent. See
+[the review](review-2026-09-12.md#blocker--an-empty-collection-read-as-five-breaking-changes).
+
 ## Recording status codes as part of the contract
 
 The recording keeps which statuses each endpoint answered with. This is what

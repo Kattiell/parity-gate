@@ -4,6 +4,10 @@ defects planted in the rewrite are the ones the report names.
 This is the test that would have caught every regression in the tool itself
 during development, and it is the reason the demo in the README is safe to
 quote: the numbers it prints are asserted here.
+
+
+parity-gate:allow-secrets-file - every credential-shaped string below is a
+fixture or a pattern definition, never a live value.
 """
 
 from __future__ import annotations
@@ -19,7 +23,7 @@ from parity_gate.contracts import ContractError, save
 from parity_gate.evidence import FAIL, PASS, WARN, verify
 from parity_gate.mock import MockServer, start
 from parity_gate.runner import Runner
-from parity_gate.suite import load
+from parity_gate.suite import SuiteError, load
 
 SUITE = """
 name = "integration"
@@ -143,9 +147,10 @@ def test_the_pagination_bug_survives_the_noise_filters(suite_file: Path) -> None
 
 def test_the_tolerant_404_is_reported_as_a_failed_assertion(suite_file: Path) -> None:
     record = records(suite_file)["CAT-003"]
-    failed = [c for c in record.checks if not c["passed"]]
-    assert [c["name"] for c in failed] == ["status"]
-    assert "got 200" in failed[0]["detail"]
+    failed = {c["name"]: c for c in record.checks if not c["passed"]}
+    assert "status" in failed and "got 200" in failed["status"]["detail"]
+    # And independently of the written assertion, by comparing the two sides.
+    assert "status_parity" in failed
 
 
 def test_the_data_exposure_is_caught_by_its_own_requirement(suite_file: Path) -> None:
@@ -378,3 +383,83 @@ def test_the_stability_cli_writes_a_bundle_and_fails_on_an_unstable_endpoint(
     )
     (bundle,) = list(out.iterdir())
     assert verify(bundle) == []
+
+
+# -- fixes for what the senior review found ---------------------------------
+
+STATUS_SUITE = """
+name = "status"
+[targets.baseline]
+base_url = "{base}/legacy"
+[targets.candidate]
+base_url = "{base}/next"
+[policy]
+allowed_hosts = ["127.0.0.1"]
+allow_private_networks = true
+repeats = 2
+[[cases]]
+id = "S-1"
+title = "unknown id"
+method = "GET"
+path = "/products/999"
+"""
+
+
+def test_a_status_divergence_fails_without_anyone_having_predicted_it(
+    tmp_path: Path, mock: MockServer
+) -> None:
+    """The false PASS the review found.
+
+    Baseline answers 404, candidate answers 200. No `expect_status` is written
+    anywhere in STATUS_SUITE — predicting the change is exactly what the tool
+    is supposed to make unnecessary.
+    """
+    target = tmp_path / "status.toml"
+    target.write_text(STATUS_SUITE.format(base=mock.base_url), encoding="utf-8")
+
+    record = Runner(load(target)).execute().records[0]
+    failed = {c["name"]: c for c in record.checks if not c["passed"]}
+    assert "status_parity" in failed
+    assert "404" in failed["status_parity"]["detail"]
+    assert "200" in failed["status_parity"]["detail"]
+    assert record.verdict == FAIL
+
+
+def test_parallel_and_sequential_runs_produce_the_same_report(
+    suite_file: Path, tmp_path: Path
+) -> None:
+    """A gate whose output depends on scheduling cannot be diffed between runs."""
+    sequential = {r.case["id"]: (r.verdict, r.drifts, r.differences)
+                  for r in Runner(load(suite_file)).execute().records}
+
+    body = suite_file.read_text(encoding="utf-8").replace("[policy]", "[policy]\nworkers = 4", 1)
+    suite_file.write_text(body, encoding="utf-8")
+    parallel_run = Runner(load(suite_file)).execute()
+    parallel = {r.case["id"]: (r.verdict, r.drifts, r.differences) for r in parallel_run.records}
+
+    assert [r.case["id"] for r in parallel_run.records] == list(sequential)
+    for case_id, expected in sequential.items():
+        # OPS-002 is deliberately intermittent; its verdict is the point of the
+        # case, not something two runs have to agree on.
+        if case_id != "OPS-002":
+            assert parallel[case_id] == expected, case_id
+
+
+def test_a_missing_credential_is_refused_at_the_door(suite_file: Path, monkeypatch) -> None:
+    body = suite_file.read_text(encoding="utf-8").replace(
+        "[policy]", 'auth = "env:PARITY_MISSING_TOKEN"\n\n[policy]', 1
+    )
+    suite_file.write_text(body, encoding="utf-8")
+    monkeypatch.delenv("PARITY_MISSING_TOKEN", raising=False)
+
+    with pytest.raises(SuiteError, match="PARITY_MISSING_TOKEN"):
+        Runner(load(suite_file)).preflight()
+
+
+def test_contract_mode_says_values_were_not_compared(tmp_path: Path, mock: MockServer) -> None:
+    suite_path = _contract_suite(tmp_path, mock, "legacy")
+    save(Runner(load(suite_path)).record_contract(), tmp_path / "recorded.json")
+
+    summary = Runner(load(suite_path)).execute().to_dict()["summary"]
+    assert summary["values_compared"] is False
+    assert summary["differences"] is None

@@ -176,9 +176,25 @@ def _diff_array(
     base: list[Any], cand: list[Any], path: str, opts: DiffOptions, out: list[Difference]
 ) -> None:
     key = _array_key_for(path, opts.array_keys)
-    if key is not None and _identifiable(base, key) and _identifiable(cand, key):
-        _diff_keyed_array(base, cand, path, key, opts, out)
-        return
+    if key is not None:
+        if _identifiable(base, key) and _identifiable(cand, key):
+            _diff_keyed_array(base, cand, path, key, opts, out)
+            return
+        # Falling back to positional silently is how a reader ends up blaming
+        # the API for noise the configuration caused.
+        out.append(
+            Difference(
+                path=path,
+                kind="KEY_MATCH_UNAVAILABLE",
+                baseline=f"key {key!r} requested",
+                candidate="compared by position instead",
+                detail=(
+                    f"items are not uniquely identified by {key!r} on both sides, so this "
+                    "collection was compared by position; differences below may be ordering "
+                    "artefacts rather than regressions"
+                ),
+            )
+        )
 
     if len(base) != len(cand):
         out.append(

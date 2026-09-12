@@ -13,7 +13,7 @@ consumers cannot survive.
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
 ```
-$ parity-gate run --suite suites/demo-contract-guard.toml
+$ parity-gate demo --mode contract
 
 suite  demo-contract-guard  (4 cases, 3 repeats)
   baseline  recorded contract contracts/demo-catalog.json
@@ -143,10 +143,10 @@ git clone https://github.com/Kattiell/parity-gate
 cd parity-gate
 pip install -e ".[dev]"
 
-parity-gate demo                                            # mode 3, differential
-parity-gate run --suite suites/demo-contract-guard.toml --with-mock   # mode 1
-parity-gate stability --suite suites/demo-catalog.toml --with-mock    # mode 2
-pytest -q                                                   # 133 tests, no network
+parity-gate demo --mode contract         # gate against a recorded contract
+parity-gate demo --mode stability        # measure the noise
+parity-gate demo                         # differential, two live services
+pytest -q                                # 156 tests, no network
 ```
 
 All of it runs against a bundled mock that serves a catalogue API twice — once
@@ -185,6 +185,16 @@ says why.
 **Redundant findings are folded.** Four products whose `price` changed type is
 one contract-drift finding, not four value differences. The count of what was
 folded is reported, so nothing vanishes silently.
+
+**An empty collection is "not checked", not "removed".** When today's filter
+matches nothing, the item fields were not deleted — nothing was learned about
+them. Reporting that as a breaking change is how a gate gets switched off in
+its first week, so those paths are listed separately instead.
+
+**A configuration that could not be honoured says so.** Ask for identity
+matching on a collection whose key is not unique on both sides and you get a
+`KEY_MATCH_UNAVAILABLE` finding, not a silent fall back to positional
+comparison and noise you would have blamed on the API.
 
 **Drift is classified by consumer impact, not by "changed".**
 
@@ -234,7 +244,9 @@ auth = "env:PARITY_TOKEN"               # the variable name, never the value
 [policy]
 allowed_hosts = [".staging.example.com"]   # mandatory; no implicit allow-all
 allow_mutations = false
-repeats = 3
+repeats = 3                             # samples per endpoint, for stability
+max_retries = 0                         # a retried 503 hides the flakiness
+workers = 1                             # raise it deliberately; it is someone's staging
 mask_paths = ["$.meta.requestId", "$.*.updatedAt"]
 
 [policy.array_keys]
@@ -325,13 +337,20 @@ and installing it should pull nothing.
 | `runner.py` | Orchestration and the verdict rules for all three modes |
 | `mock/server.py` | The two-headed demo API, deterministic down to the flaky endpoint |
 
-**133 tests**, unit and integration, on Python 3.11–3.13 across Linux and
-Windows. The integration suite boots the mock and asserts that each planted
-defect is the finding that comes out — including two control experiments: a
-service compared to itself, and a service checked against its own recording,
-both of which must produce nothing. Three real bugs (a severity misclassified as
-breaking, wrong CLI exit codes, and evidence hashes that depended on the
-operating system's line endings) were caught by these tests during development.
+**156 tests**, unit and integration, offline. The CI matrix is configured for
+Python 3.11–3.13 on Linux and Windows; the badge at the top is the honest answer
+to whether it is currently green.
+
+The integration suite boots the mock and asserts that each planted defect is the
+finding that comes out — including two control experiments that must produce
+nothing: a service compared against itself, and a service checked against its
+own recording.
+
+This has been through an adversarial review whose first instruction was *make it
+report PASS on a change that would break a real consumer*. It found two ways.
+Both are fixed, both now have a regression test, and the write-up —
+including the findings that were **not** fixed — is in
+[docs/review-2026-09-12.md](docs/review-2026-09-12.md).
 
 ## Documentation
 
@@ -342,6 +361,8 @@ operating system's line endings) were caught by these tests during development.
 - [ADR-002](docs/adr-002-record-shape-not-values.md) — why a recorded contract
   holds shape and status but never values, and how that removes the rot
 - [SECURITY.md](SECURITY.md) — threat model and controls
+- [Review findings](docs/review-2026-09-12.md) — an adversarial review, what it
+  broke, what was fixed, and what is still open
 - [Sample evidence bundle](docs/evidence/) — report, machine record, manifest
 - Bug reports written from real findings:
   [BUG-001](docs/bugs/BUG-001-price-serialised-as-string.md) ·
@@ -358,8 +379,10 @@ wrong places:
   faithfully reproduced by both sides passes.
 - **A recording is only as good as the day it was taken.** Record from a version
   you actually believe in, and review the file before committing it.
-- **Stability is sampled, not proven.** Three repeats find frequent flakiness,
-  not rare flakiness.
+- **Stability is sampled, not proven.** Three repeats taken back to back find
+  frequent flakiness, not flakiness on a slower period than that.
+- **No connection reuse.** Every request opens a fresh socket, so a large suite
+  is slower than it needs to be even with `workers` raised.
 - **Redaction is pattern-based.** A secret in a format nobody has seen survives
   it. Read evidence before attaching it to a public issue.
 - **GraphQL, gRPC and streaming are out of scope.** It speaks JSON over HTTP.

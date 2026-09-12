@@ -32,8 +32,6 @@ EXIT_USAGE = 1
 EXIT_GATE_FAILED = 2
 EXIT_REFUSED = 3
 
-DEMO_SUITE = Path(__file__).resolve().parent.parent.parent / "suites" / "demo-catalog.toml"
-
 _COLORS = {PASS: "\033[32m", WARN: "\033[33m", FAIL: "\033[31m", ERROR: "\033[35m"}
 
 
@@ -84,7 +82,13 @@ def _parser() -> argparse.ArgumentParser:
     run.set_defaults(handler=_cmd_run)
 
     demo = sub.add_parser(
-        "demo", help="run the bundled offline demo suite against the bundled mock API"
+        "demo", help="run a bundled offline demo against the bundled mock API"
+    )
+    demo.add_argument(
+        "--mode",
+        choices=["differential", "contract", "stability"],
+        default="differential",
+        help="which of the three ways to use the tool to demonstrate",
     )
     demo.add_argument("--evidence", type=Path, default=Path("evidence"))
     demo.add_argument("--strict", action="store_true")
@@ -139,21 +143,36 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _cmd_demo(args: argparse.Namespace) -> int:
-    fallback = Path.cwd() / "suites" / DEMO_SUITE.name
-    suite_path = next((p for p in (DEMO_SUITE, fallback) if p.is_file()), None)
-    if suite_path is None:
-        _err(f"demo suite not found at {DEMO_SUITE}; run from a clone of the repository")
+    from parity_gate import demo as demo_assets
+
+    try:
+        suite_path = demo_assets.suite_path(args.mode)
+    except (ValueError, FileNotFoundError) as exc:
+        _err(str(exc))
         return EXIT_USAGE
-    namespace = argparse.Namespace(
-        suite=suite_path,
-        evidence=args.evidence,
-        with_mock=True,
-        strict=args.strict,
-        allow_mutations=False,
-        allow_production=False,
-        quiet=args.quiet,
+
+    if args.mode == "stability":
+        return _cmd_stability(
+            argparse.Namespace(
+                suite=suite_path,
+                evidence=args.evidence,
+                strict=args.strict,
+                with_mock=True,
+                quiet=args.quiet,
+            )
+        )
+
+    return _cmd_run(
+        argparse.Namespace(
+            suite=suite_path,
+            evidence=args.evidence,
+            with_mock=True,
+            strict=args.strict,
+            allow_mutations=False,
+            allow_production=False,
+            quiet=args.quiet,
+        )
     )
-    return _cmd_run(namespace)
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
@@ -207,10 +226,20 @@ def _cmd_run(args: argparse.Namespace) -> int:
         f"cases     {summary['cases']} - "
         + ", ".join(f"{count} {name}" for name, count in summary["by_verdict"].items() if count)
     )
+    values = (
+        f"{summary['differences']} value diff"
+        if summary.get("values_compared")
+        else "values not compared (contract mode)"
+    )
     print(
         f"findings  {summary['breaking_drifts']} breaking drift, "
-        f"{summary['differences']} value diff, {summary['unstable_cases']} unstable"
+        f"{values}, {summary['unstable_cases']} unstable"
     )
+    if summary.get("unchecked_paths"):
+        print(
+            f"unchecked {summary['unchecked_paths']} path(s) - a collection was empty, "
+            "so nothing was learned about them"
+        )
     print(f"evidence  {bundle}")
     print(f"chain     {run.chain_head[:16]}")
 

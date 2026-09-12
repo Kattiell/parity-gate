@@ -1,5 +1,9 @@
 """Suite validation: a harness that accepts a broken file and fails later is
-worse than one that refuses it at the door."""
+worse than one that refuses it at the door.
+
+parity-gate:allow-secrets-file - every credential-shaped string below is a
+fixture or a pattern definition, never a live value.
+"""
 
 from __future__ import annotations
 
@@ -128,7 +132,9 @@ def test_case_masks_extend_rather_than_replace_suite_masks(tmp_path: Path) -> No
 
 
 def test_the_bundled_demo_suite_is_valid() -> None:
-    suite = load(Path(__file__).resolve().parent.parent / "suites" / "demo-catalog.toml")
+    from parity_gate import demo
+
+    suite = load(demo.suite_path("differential"))
     assert len(suite.cases) >= 6
     assert suite.array_keys == {"$.products": "id"}
     assert suite.policy.allow_mutations is False
@@ -186,8 +192,36 @@ def test_the_candidate_has_to_be_a_running_service(tmp_path: Path) -> None:
 
 
 def test_the_bundled_contract_guard_suite_is_valid() -> None:
-    root = Path(__file__).resolve().parent.parent
-    suite = load(root / "suites" / "demo-contract-guard.toml")
+    from parity_gate import demo
+
+    suite = load(demo.suite_path("contract"))
     assert suite.baseline.is_recorded
     assert suite.contract_path is not None
-    assert suite.contract_path.is_file(), "the demo contract should be committed"
+    assert suite.contract_path.is_file(), "the demo contract should ship with the package"
+
+
+def test_demo_assets_resolve_without_a_clone() -> None:
+    """They live in the package precisely so a wheel install works anywhere."""
+    from parity_gate import demo
+
+    for mode in ("differential", "contract", "stability"):
+        assert demo.suite_path(mode).is_file()
+
+
+def test_an_unknown_demo_mode_is_refused() -> None:
+    from parity_gate import demo
+
+    with pytest.raises(ValueError, match="unknown demo mode"):
+        demo.suite_path("nope")
+
+
+def test_retries_are_off_by_default(tmp_path: Path) -> None:
+    """Retrying a 503 would hide the flakiness the tool exists to surface."""
+    assert load(write(tmp_path, MINIMAL)).policy.max_retries == 0
+
+
+def test_workers_default_to_one_and_cannot_be_zero(tmp_path: Path) -> None:
+    assert load(write(tmp_path, MINIMAL)).policy.workers == 1
+    hosts = 'allowed_hosts = ["127.0.0.1"]'
+    body = MINIMAL.replace(hosts, f"{hosts}\nworkers = 0")
+    assert load(write(tmp_path, body)).policy.workers == 1

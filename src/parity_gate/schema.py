@@ -269,13 +269,41 @@ class Drift:
 _SAFE_WIDENINGS = frozenset({frozenset({"integer", "number"})})
 
 
-def compare(baseline: Schema, candidate: Schema) -> list[Drift]:
+def unobserved_because_empty(schema: Schema, path: Path) -> bool:
+    """True when nothing could be learned about ``path`` from these samples.
+
+    A collection that came back empty says nothing about the shape of its
+    items. Treating "the page had no rows today" as "the fields were removed"
+    is the single most effective way to make a gate get switched off: search,
+    filters and pagination past the last page all produce empty collections on
+    a perfectly healthy service.
+
+    So the subtree under an empty array is *unobserved*, which is a different
+    fact from *absent*, and is reported as such rather than as a regression.
+    """
+    for cut in range(1, len(path) + 1):
+        prefix = path[:cut]
+        if prefix[-1][0] != "i" or prefix in schema.fields:
+            continue
+        container = schema.fields.get(prefix[:-1])
+        if container is not None and container.types.get("array", 0) > 0:
+            return True
+    return False
+
+
+def compare(baseline: Schema, candidate: Schema) -> tuple[list[Drift], list[str]]:
     """Classify every structural difference from ``baseline`` to ``candidate``.
 
     The direction matters: ``baseline`` is the contract consumers were written
     against, ``candidate`` is what the rewrite now returns.
+
+    Returns the findings and, separately, the paths that could not be checked
+    at all because a collection was empty on one side. Those are not findings —
+    but they are not silence either, because a gate that quietly stops checking
+    a subtree gives false confidence.
     """
     drifts: list[Drift] = []
+    unchecked: list[str] = []
     paths = sorted(set(baseline.fields) | set(candidate.fields), key=render_path)
 
     for path in paths:
@@ -284,6 +312,9 @@ def compare(baseline: Schema, candidate: Schema) -> list[Drift]:
         in_cand = path in candidate.fields
 
         if in_base and not in_cand:
+            if unobserved_because_empty(candidate, path):
+                unchecked.append(rendered)
+                continue
             required = baseline.is_required(path)
             drifts.append(
                 Drift(
@@ -299,6 +330,11 @@ def compare(baseline: Schema, candidate: Schema) -> list[Drift]:
             continue
 
         if in_cand and not in_base:
+            if unobserved_because_empty(baseline, path):
+                # The other side's collection was empty when it was sampled, so
+                # this is the first sight of the field, not an addition to it.
+                unchecked.append(rendered)
+                continue
             drifts.append(
                 Drift(
                     path=rendered,
@@ -312,7 +348,7 @@ def compare(baseline: Schema, candidate: Schema) -> list[Drift]:
         drifts.extend(_compare_field(baseline, candidate, path, rendered))
 
     drifts.sort(key=lambda d: (-d.severity.rank, d.path))
-    return drifts
+    return drifts, unchecked
 
 
 def _compare_field(baseline: Schema, candidate: Schema, path: Path, rendered: str) -> list[Drift]:

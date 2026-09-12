@@ -7,7 +7,8 @@ from parity_gate.schema import Severity, compare, infer, render_path, type_of, w
 
 
 def kinds(base, cand) -> dict[str, tuple[str, str]]:
-    return {d.path: (d.kind, d.severity.value) for d in compare(infer(*base), infer(*cand))}
+    drifts, _ = compare(infer(*base), infer(*cand))
+    return {d.path: (d.kind, d.severity.value) for d in drifts}
 
 
 def test_type_names_distinguish_bool_from_int() -> None:
@@ -27,7 +28,7 @@ def test_paths_render_readably_and_quote_odd_keys() -> None:
 
 def test_identical_payloads_produce_no_drift() -> None:
     payload = {"id": 1, "tags": ["x"], "nested": {"a": 1.0}}
-    assert compare(infer(payload), infer(payload)) == []
+    assert compare(infer(payload), infer(payload)) == ([], [])
 
 
 def test_removing_an_always_present_field_is_breaking() -> None:
@@ -70,7 +71,51 @@ def test_an_empty_array_does_not_look_like_a_removed_field() -> None:
     # The classic false alarm: page two happens to be empty.
     base = infer({"products": [{"id": 1}]}, {"products": []})
     cand = infer({"products": [{"id": 1}]}, {"products": []})
-    assert compare(base, cand) == []
+    assert compare(base, cand) == ([], [])
+
+
+def test_a_collection_that_is_empty_today_is_unchecked_not_broken() -> None:
+    """The regression that would have made the gate unusable in production.
+
+    The contract was recorded on a day the catalogue had rows. Today the filter
+    matches nothing. Every item field then looks "removed" — five breaking
+    findings for a healthy service, on any endpoint that can return an empty
+    page, which is most of them.
+    """
+    recorded = infer({"products": [{"id": 1, "price": 9.9, "tags": ["a"]}], "total": 1})
+    today = infer({"products": [], "total": 0})
+
+    drifts, unchecked = compare(recorded, today)
+    assert drifts == []
+    assert "$.products[].price" in unchecked
+    assert "$.products[].tags[]" in unchecked
+
+
+def test_the_reverse_is_first_sight_not_an_addition() -> None:
+    recorded = infer({"products": [], "total": 0})
+    today = infer({"products": [{"id": 1, "price": 9.9}], "total": 1})
+
+    drifts, unchecked = compare(recorded, today)
+    assert drifts == []
+    assert "$.products[].price" in unchecked
+
+
+def test_an_empty_collection_does_not_hide_a_real_removal() -> None:
+    """The fix must not become a blanket amnesty for anything under an array."""
+    base = infer({"products": [{"id": 1, "price": 9.9}]})
+    cand = infer({"products": [{"id": 1}]})
+
+    drifts, unchecked = compare(base, cand)
+    assert [(d.kind, d.path) for d in drifts] == [("FIELD_REMOVED", "$.products[].price")]
+    assert unchecked == []
+
+
+def test_the_collection_itself_disappearing_is_still_breaking() -> None:
+    base = infer({"products": [{"id": 1}]})
+    cand = infer({"total": 0})
+
+    drifts, _ = compare(base, cand)
+    assert ("FIELD_REMOVED", "$.products") in [(d.kind, d.path) for d in drifts]
 
 
 def test_fingerprint_ignores_values_but_not_structure() -> None:
@@ -80,7 +125,7 @@ def test_fingerprint_ignores_values_but_not_structure() -> None:
 
 
 def test_findings_are_ordered_worst_first() -> None:
-    drifts = compare(
+    drifts, _ = compare(
         infer({"keep": 1, "gone": 2}),
         infer({"keep": "1", "added": 3}),
     )

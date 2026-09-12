@@ -16,6 +16,8 @@ Order of operations per case, and why:
 from __future__ import annotations
 
 import re
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -58,10 +60,39 @@ class Runner:
 
     def __init__(self, suite: Suite, *, on_case: Any = None) -> None:
         self.suite = suite
-        self.client = Client(suite.policy)
         self.on_case = on_case
         # Loaded lazily: `record` has to run before the file exists.
         self.contract: contracts.Contract | None = None
+        # One client per worker thread. urllib openers make no thread-safety
+        # promise, and sharing one across workers is the kind of bug that shows
+        # up as a flaky result in the tool that exists to diagnose flakiness.
+        self._local = threading.local()
+
+    @property
+    def client(self) -> Client:
+        client = getattr(self._local, "client", None)
+        if client is None:
+            client = self._local.client = Client(self.suite.policy)
+        return client
+
+    def _map_cases(self, work: Any, on_result: Any = None) -> list[Any]:
+        """Run ``work(case)`` over every case and return the results in suite order.
+
+        Results are consumed in submission order rather than as they complete,
+        so a parallel run produces exactly the same report, hash chain and
+        console output as a sequential one. A gate whose output depends on
+        scheduling is a gate nobody can diff between runs.
+        """
+        workers = max(1, self.suite.policy.workers)
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="parity") as pool:
+            futures = [(case, pool.submit(work, case)) for case in self.suite.cases]
+            results = []
+            for case, future in futures:
+                result = future.result()
+                results.append(result)
+                if on_result:
+                    on_result(case, result)
+        return results
 
     def _load_contract(self) -> None:
         if self.suite.baseline.is_recorded and self.contract is None:
@@ -76,6 +107,11 @@ class Runner:
         is discovering it 39 cases too late.
         """
         live = [t for t in (self.suite.baseline, self.suite.candidate) if not t.is_recorded]
+        for target in live:
+            # Resolving here means a missing credential is a refusal at the
+            # door, not an exception three cases into a run that has already
+            # printed a header and looks like it is working.
+            target.resolved_headers()
         for case in self.suite.cases:
             check_method(case.method, mutating=case.mutating, policy=self.suite.policy)
             for target in live:
@@ -95,6 +131,7 @@ class Runner:
             ),
             candidate_url=suite.candidate.label,
             policy=suite.policy.to_dict(),
+            mode="contract" if suite.baseline.is_recorded else "differential",
         )
 
     def record_contract(self, on_case: Any = None) -> contracts.Contract:
@@ -112,7 +149,7 @@ class Runner:
             recorded_at=contracts.now(),
             note="Shape only: types, requiredness and observed statuses. No values.",
         )
-        for case in self.suite.cases:
+        def probe_one(case: Case) -> Probe:
             probe = self._probe(self.suite.candidate, case)
             if probe.first is None or probe.first.transport_error:
                 raise ContractRecordingError(
@@ -120,13 +157,14 @@ class Runner:
                     f"{probe.first.transport_error if probe.first else 'no response'}. "
                     "A contract recorded from a half-reachable service is worse than none."
                 )
+            return probe
+
+        for case, probe in zip(self.suite.cases, self._map_cases(probe_one, on_case), strict=True):
             contract.cases[case.id] = contracts.RecordedCase(
                 schema=probe.schema,
                 statuses=sorted({r.status for r in probe.responses if r.status is not None}),
                 stability=probe.stability.verdict if probe.stability else "UNKNOWN",
             )
-            if on_case:
-                on_case(case, probe)
         return contract
 
     def measure_stability(self, on_case: Any = None) -> Run:
@@ -140,7 +178,8 @@ class Runner:
         """
         self.preflight()
         run = self._new_run()
-        for case in self.suite.cases:
+
+        def measure_one(case: Case) -> Record:
             record = Record(case=case.to_dict(), verdict=PASS)
             try:
                 check_method(case.method, mutating=case.mutating, policy=self.suite.policy)
@@ -148,8 +187,7 @@ class Runner:
             except SafetyError as exc:
                 record.verdict = ERROR
                 record.error = f"refused by safety policy: {exc}"
-                run.add(record)
-                continue
+                return record
 
             record.candidate = self._exchange(probe)
             record.stability = {
@@ -165,9 +203,14 @@ class Runner:
                     record.verdict = FAIL
                 elif verdict == flaky.VOLATILE_BODY:
                     record.verdict = WARN
-            run.add(record)
+            return record
+
+        def announce(case: Case, record: Record) -> None:
             if on_case:
                 on_case(case, record)
+
+        for record in self._map_cases(measure_one, announce):
+            run.add(record)
 
         run.finished_at = evidence.utc_now()
         return run
@@ -177,11 +220,10 @@ class Runner:
         self._load_contract()
         run = self._new_run()
 
-        for case in self.suite.cases:
-            record = self._run_case(case)
+        for record in self._map_cases(
+            self._run_case, lambda case, rec: self.on_case and self.on_case(case, rec)
+        ):
             run.add(record)
-            if self.on_case:
-                self.on_case(case, record)
 
         run.finished_at = evidence.utc_now()
         return run
@@ -248,8 +290,9 @@ class Runner:
             record.verdict = FAIL if any(not c["passed"] for c in record.checks) else WARN
             return record
 
-        drifts = compare(recorded.schema, candidate.schema)
+        drifts, unchecked = compare(recorded.schema, candidate.schema)
         record.drifts = [d.to_dict() for d in drifts]
+        record.unchecked_paths = unchecked
         record.schema = {
             "baseline": recorded.schema.to_dict(),
             "candidate": candidate.schema.to_dict(),
@@ -311,8 +354,9 @@ class Runner:
             record.verdict = FAIL if any(not c["passed"] for c in record.checks) else WARN
             return record
 
-        drifts = compare(baseline.schema, candidate.schema)
+        drifts, unchecked = compare(baseline.schema, candidate.schema)
         record.drifts = [d.to_dict() for d in drifts]
+        record.unchecked_paths = unchecked
         record.schema = {
             "baseline": baseline.schema.to_dict(),
             "candidate": candidate.schema.to_dict(),
@@ -327,6 +371,7 @@ class Runner:
         record.differences_suppressed = suppressed
 
         record.checks = self._checks(case, candidate)
+        record.checks.extend(_status_parity_checks(baseline, candidate))
         record.verdict = self._verdict(record, drifts, differences, baseline, candidate)
         return record
 
@@ -447,6 +492,28 @@ class Runner:
 
 def _check(name: str, passed: bool, failure_detail: str) -> dict[str, Any]:
     return {"name": name, "passed": passed, "detail": "" if passed else failure_detail}
+
+
+def _status_parity_checks(baseline: Probe, candidate: Probe) -> list[dict[str, Any]]:
+    """The status code is part of the contract, so a divergence is a failure.
+
+    Without this, a baseline answering 201 and a candidate answering 200 with an
+    identical body is reported as PASS: no drift, no value difference, and no
+    assertion unless somebody predicted that exact change and wrote
+    ``expect_status``. Predicting the change is the thing this tool is supposed
+    to make unnecessary.
+    """
+    seen_base = sorted({r.status for r in baseline.responses if r.status is not None})
+    seen_cand = sorted({r.status for r in candidate.responses if r.status is not None})
+    if not seen_base or not seen_cand:
+        return []
+    return [
+        _check(
+            "status_parity",
+            seen_base == seen_cand,
+            f"baseline answered {seen_base}, candidate answered {seen_cand}",
+        )
+    ]
 
 
 def _status_contract_checks(

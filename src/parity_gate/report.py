@@ -37,9 +37,13 @@ def render_markdown(run: Run) -> str:
         f"- {summary['cases']} case(s): "
         + ", ".join(f"{count} {name}" for name, count in summary["by_verdict"].items() if count)
     )
+    values = (
+        f"{summary['differences']} value difference(s)"
+        if summary.get("values_compared")
+        else "values not compared (gated against a recorded contract)"
+    )
     add(
-        f"- {summary['breaking_drifts']} breaking contract change(s), "
-        f"{summary['differences']} value difference(s), "
+        f"- {summary['breaking_drifts']} breaking contract change(s), {values}, "
         f"{summary['unstable_cases']} unstable endpoint(s)"
     )
     add(f"- Evidence chain head `{data['chain_head'][:16]}`")
@@ -62,7 +66,9 @@ def render_markdown(run: Run) -> str:
         )
     add("")
 
-    actionable = [r for r in run.records if r.verdict in {FAIL, ERROR, WARN}]
+    actionable = [
+        r for r in run.records if r.verdict in {FAIL, ERROR, WARN} or r.unchecked_paths
+    ]
     if actionable:
         add("## Findings")
         add("")
@@ -119,6 +125,19 @@ def render_markdown(run: Run) -> str:
                 f"_{record.differences_suppressed} further value difference(s) are folded away: "
                 "they are restatements of the contract drift listed above._"
             )
+            add("")
+
+        if record.unchecked_paths:
+            add(
+                f"**Not checked** — {len(record.unchecked_paths)} path(s) could not be "
+                "compared because a collection was empty in every sample. Nothing is wrong "
+                "with them; nothing is confirmed about them either."
+            )
+            add("")
+            for path in record.unchecked_paths[:12]:
+                add(f"- `{path}`")
+            if len(record.unchecked_paths) > 12:
+                add(f"- _and {len(record.unchecked_paths) - 12} more_")
             add("")
 
         for label, stability in _stability_blocks(record):
@@ -194,7 +213,7 @@ def render_html(run: Run) -> str:
         candidate=_e(run.candidate_url),
         cases=summary["cases"],
         breaking=summary["breaking_drifts"],
-        diffs=summary["differences"],
+        diffs=summary["differences"] if summary.get("values_compared") else "n/a",
         unstable=summary["unstable_cases"],
         chain=_e(data["chain_head"][:16]),
         rows="\n".join(rows),
@@ -249,6 +268,19 @@ def _html_details(record: Any) -> str:
             else ""
         )
         blocks.append(f"<h4>Value differences</h4>{table}{folded}")
+
+    if record.unchecked_paths:
+        items = "".join(f"<li><code>{_e(p)}</code></li>" for p in record.unchecked_paths[:12])
+        extra = (
+            f"<li>and {len(record.unchecked_paths) - 12} more</li>"
+            if len(record.unchecked_paths) > 12
+            else ""
+        )
+        blocks.append(
+            "<h4>Not checked</h4><p class=\"muted\">A collection was empty in every sample, "
+            "so nothing could be learned about these paths. Not a finding, not a "
+            f"confirmation.</p><ul>{items}{extra}</ul>"
+        )
 
     for label, stability in _stability_blocks(record):
         suggestion = ""

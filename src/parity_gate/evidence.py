@@ -84,6 +84,9 @@ class Record:
     drifts: list[dict[str, Any]] = field(default_factory=list)
     differences: list[dict[str, Any]] = field(default_factory=list)
     differences_suppressed: int = 0
+    #: Paths nothing could be learned about, because a collection was empty in
+    #: every sample. Not findings, but not silence either.
+    unchecked_paths: list[str] = field(default_factory=list)
     stability: dict[str, Any] = field(default_factory=dict)
     baseline: dict[str, Any] = field(default_factory=dict)
     candidate: dict[str, Any] = field(default_factory=dict)
@@ -101,6 +104,7 @@ class Record:
             "drifts": self.drifts,
             "differences": self.differences,
             "differences_suppressed": self.differences_suppressed,
+            "unchecked_paths": self.unchecked_paths,
             "stability": self.stability,
             "baseline": self.baseline,
             "candidate": self.candidate,
@@ -130,6 +134,10 @@ class Run:
     baseline_url: str
     candidate_url: str
     policy: dict[str, Any]
+    #: Which comparison this run performed. A contract run never looks at
+    #: values, so reporting "0 value differences" without saying so would read
+    #: as "no values changed" instead of "values were not checked".
+    mode: str = "differential"
     started_at: str = field(default_factory=utc_now)
     finished_at: str | None = None
     records: list[Record] = field(default_factory=list)
@@ -180,6 +188,7 @@ class Run:
                 "platform": platform.platform(),
             },
             "run_id": self.run_id,
+            "mode": self.mode,
             "suite": {
                 "name": self.suite_name,
                 "path": self.suite_path,
@@ -196,8 +205,14 @@ class Run:
                 "breaking_drifts": sum(
                     1 for r in self.records for d in r.drifts if d["severity"] == "breaking"
                 ),
-                "differences": sum(len(r.differences) for r in self.records),
+                "differences": (
+                    sum(len(r.differences) for r in self.records)
+                    if self.mode == "differential"
+                    else None
+                ),
+                "values_compared": self.mode == "differential",
                 "unstable_cases": sum(1 for r in self.records if _is_unstable(r)),
+                "unchecked_paths": sum(len(r.unchecked_paths) for r in self.records),
                 "volatile_cases": sum(1 for r in self.records if _is_volatile(r)),
             },
             "traceability": self.traceability(),
@@ -318,6 +333,7 @@ _RECORD_KEYS = (
     "drifts",
     "differences",
     "differences_suppressed",
+    "unchecked_paths",
     "stability",
     "baseline",
     "candidate",

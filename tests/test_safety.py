@@ -1,5 +1,9 @@
 """The guards only matter if they hold, so every refusal has a test and every
-allowance is explicit."""
+allowance is explicit.
+
+parity-gate:allow-secrets-file - every credential-shaped string below is a
+fixture or a pattern definition, never a live value.
+"""
 
 from __future__ import annotations
 

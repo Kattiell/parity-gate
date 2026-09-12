@@ -18,10 +18,20 @@ Three things follow from that.
   (`auth = "env:NAME"`), never a value, and a suite containing something shaped
   like a live token is refused before it runs.
 - Everything written to disk passes through `redaction.py` first: sensitive
-  headers by name, sensitive JSON keys at any depth, and known credential shapes
-  (JWT, `Bearer …`, `ghp_…`, `xox…`, `AKIA…`, `sk-…`, `AIza…`, PEM blocks,
-  `user:pass@host` in URLs) plus personal data (e-mail, CPF, CNPJ, card numbers)
-  anywhere in a value.
+  headers by name, sensitive JSON keys at any depth, and credential shapes with
+  a recognisable **prefix** (JWT, `Bearer …`, `ghp_…`, `xox…`, `AKIA…`, `sk-…`,
+  `rk_live_…`, `glpat-…`, `npm_…`, `dop_v1_…`, `AIza…`, PEM blocks,
+  `user:pass@host` in URLs) plus personal data (e-mail, CPF, CNPJ, and card
+  numbers that pass a Luhn check).
+- **What that does not cover, stated plainly:** a credential with no prefix —
+  an AWS *secret* access key, a bare 32-character API key, an opaque session id
+  — appearing as a naked value under an innocuous key. Nothing here will catch
+  it. Put credentials behind one of the names in `SENSITIVE_KEYS`, or review
+  evidence before publishing it.
+- Card masking is gated behind Luhn on purpose. Masking every 13-to-19-digit
+  run destroyed barcodes, phone numbers and timestamps in the evidence while
+  letting longer numbers through — a rule that mangles real data produces
+  evidence nobody can use.
 - Response bodies are capped in the evidence file so a large payload cannot
   balloon an artifact.
 - The integration test asserts that a token supplied through the environment
@@ -40,8 +50,13 @@ Three things follow from that.
   infrastructure by accident.
 - **Redirects are re-validated.** Every hop is checked against the same
   allow-list, so a staging host that 302s to production does not get followed.
-- **Fail before sending.** Every URL and method is validated up front; a
-  misconfigured run makes zero requests.
+- **Fail before sending.** Every URL, method and credential is resolved up
+  front; a misconfigured run makes zero requests.
+- **Retries are off by default.** Beyond hiding flakiness, a retry loop against
+  a struggling service is extra load at the worst moment.
+- **One worker by default.** Concurrency is opt-in, because a QA tool that
+  quietly puts eight times the load on someone's staging environment is a bad
+  guest.
 
 ### Its output must be trustworthy
 
@@ -63,8 +78,8 @@ scans its own repository for credential-shaped strings on every build.
 
 ## Known limits
 
-- Redaction is pattern-based. A secret in a format nobody has seen survives it.
-  Review evidence before attaching it to a public issue.
+- Redaction is pattern-based and prefix-anchored. See the explicit
+  non-coverage above; review evidence before attaching it to a public issue.
 - The production guard matches on hostname substrings. An environment whose
   production host does not say "prod" is not covered by it — the host allow-list
   is the control that is.

@@ -50,7 +50,17 @@ class Policy:
     #: mock server runs on 127.0.0.1, so demo suites set this).
     allow_private_networks: bool = False
     timeout_seconds: float = 10.0
-    max_retries: int = 1
+    #: Zero by default, and deliberately so. Retrying a 503 turns an endpoint
+    #: that fails one call in three into one that looks healthy, which destroys
+    #: the flakiness signal this tool exists to surface. Raise it only for a
+    #: suite where you would rather have the result than the truth about it.
+    max_retries: int = 0
+    #: How many cases run at once. One by default: a QA tool that quietly puts
+    #: eight times the load on someone's staging environment is a bad guest.
+    #: Raise it deliberately. The repeated calls *within* a case always stay
+    #: sequential, whatever this is set to, because interleaving them would
+    #: change what the stability measurement means.
+    workers: int = 1
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -61,6 +71,7 @@ class Policy:
             "forbidden_host_patterns": self.forbidden_host_patterns,
             "timeout_seconds": self.timeout_seconds,
             "max_retries": self.max_retries,
+            "workers": self.workers,
         }
 
 
@@ -134,9 +145,31 @@ def check_method(method: str, *, mutating: bool, policy: Policy) -> None:
         )
 
 
+#: Put this marker on a line to exempt that line, or anywhere in a file to
+#: exempt the whole file. A scanner with no way to say "this one is a fixture"
+#: gets a blanket exclusion instead, and then it stops scanning the directory
+#: that actually matters.
+ALLOW_LINE = "parity-gate:allow-secret"
+ALLOW_FILE = "parity-gate:allow-secrets-file"
+
+
 def scan_for_secrets(text: str, origin: str) -> list[str]:
-    """Return human-readable findings for credentials embedded in ``text``."""
-    return [f"{origin}: looks like a live {name}" for name in find_secrets(text)]
+    """Return human-readable findings for credentials embedded in ``text``.
+
+    This is a guardrail against pasting a live token somewhere it will be
+    committed, not a security boundary: whoever writes the file can also write
+    the pragma. It is aimed at the accident, which is the realistic case.
+    """
+    if ALLOW_FILE in text:
+        return []
+
+    findings: list[str] = []
+    for number, line in enumerate(text.splitlines(), start=1):
+        if ALLOW_LINE in line:
+            continue
+        for name in find_secrets(line):
+            findings.append(f"{origin}:{number}: looks like a live {name}")
+    return findings
 
 
 def _is_private(host: str) -> bool:

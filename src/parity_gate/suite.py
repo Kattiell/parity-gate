@@ -196,7 +196,8 @@ def _build(data: dict[str, Any], source: Path) -> Suite:
         allow_production=bool(policy_raw.get("allow_production", False)),
         allow_private_networks=bool(policy_raw.get("allow_private_networks", False)),
         timeout_seconds=float(policy_raw.get("timeout_seconds", 10.0)),
-        max_retries=int(policy_raw.get("max_retries", 1)),
+        max_retries=int(policy_raw.get("max_retries", 0)),
+        workers=max(1, int(policy_raw.get("workers", 1))),
     )
     if "forbidden_host_patterns" in policy_raw:
         policy.forbidden_host_patterns = [str(p) for p in policy_raw["forbidden_host_patterns"]]

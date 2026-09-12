@@ -59,8 +59,8 @@ def test_a_restored_schema_compares_identically_to_the_original() -> None:
     candidate = infer({"id": 1, "price": "19.90"}, {"id": 2, "price": "20.00"})
     restored = type(baseline).from_portable(baseline.to_portable())
 
-    live = [(d.path, d.kind, d.severity) for d in compare(baseline, candidate)]
-    recorded = [(d.path, d.kind, d.severity) for d in compare(restored, candidate)]
+    live = [(d.path, d.kind, d.severity) for d in compare(baseline, candidate)[0]]
+    recorded = [(d.path, d.kind, d.severity) for d in compare(restored, candidate)[0]]
     assert recorded == live
 
 

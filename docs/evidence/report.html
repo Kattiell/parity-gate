@@ -77,7 +77,7 @@ footer { margin-top: 40px; font-size: 12px; color: var(--muted); }
   <div class="meta">
     <div>baseline &nbsp;<code>http://127.0.0.1:8799/legacy</code></div>
     <div>candidate <code>http://127.0.0.1:8799/next</code></div>
-    <div>run <code>20260912T041307Z-4725a2</code> · finished 2026-09-12T04:13:07Z · chain <code>4992dcdfbd0c7619</code></div>
+    <div>run <code>20260912T064339Z-0fd289</code> · finished 2026-09-12T06:43:39Z · chain <code>8b648ef2dc623826</code></div>
   </div>
 </div>
 
@@ -115,7 +115,7 @@ footer { margin-top: 40px; font-size: 12px; color: var(--muted); }
   <td>0</td>
   <td>STABLE</td>
 </tr>
-<tr class="detail"><td colspan="7"><h4>Failed assertions</h4><ul><li><code>status</code> &mdash; expected [404], got 200</li></ul><h4>Contract drift</h4><table class="inner"><thead><tr><th>Severity</th><th>Kind</th><th>Path</th><th>Detail</th></tr></thead><tbody><tr><td><span class="sev breaking">breaking</span></td><td><code>FIELD_REMOVED</code></td><td><code>$.code</code></td><td>present in baseline but absent from candidate (was always present)</td></tr><tr><td><span class="sev breaking">breaking</span></td><td><code>FIELD_REMOVED</code></td><td><code>$.error</code></td><td>present in baseline but absent from candidate (was always present)</td></tr><tr><td><span class="sev additive">additive</span></td><td><code>FIELD_ADDED</code></td><td><code>$.data</code></td><td>new in candidate; harmless for consumers that ignore unknown fields</td></tr></tbody></table><h4>Value differences</h4><p class="muted">3 further difference(s) folded away: they restate the contract drift above.</p></td></tr>
+<tr class="detail"><td colspan="7"><h4>Failed assertions</h4><ul><li><code>status</code> &mdash; expected [404], got 200</li><li><code>status_parity</code> &mdash; baseline answered [404], candidate answered [200]</li></ul><h4>Contract drift</h4><table class="inner"><thead><tr><th>Severity</th><th>Kind</th><th>Path</th><th>Detail</th></tr></thead><tbody><tr><td><span class="sev breaking">breaking</span></td><td><code>FIELD_REMOVED</code></td><td><code>$.code</code></td><td>present in baseline but absent from candidate (was always present)</td></tr><tr><td><span class="sev breaking">breaking</span></td><td><code>FIELD_REMOVED</code></td><td><code>$.error</code></td><td>present in baseline but absent from candidate (was always present)</td></tr><tr><td><span class="sev additive">additive</span></td><td><code>FIELD_ADDED</code></td><td><code>$.data</code></td><td>new in candidate; harmless for consumers that ignore unknown fields</td></tr></tbody></table><h4>Value differences</h4><p class="muted">3 further difference(s) folded away: they restate the contract drift above.</p></td></tr>
 <tr class="v-fail">
   <td><span class="badge fail">FAIL</span></td>
   <td><code>SEC-001</code><div class="muted">Internal cost data is never exposed on the public catalogue</div></td>
