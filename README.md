@@ -30,8 +30,8 @@ suite  demo-catalog  (6 cases, 3 repeats)
 verdict   FAIL
 cases     6 - 1 PASS, 2 WARN, 3 FAIL
 findings  7 breaking drift, 4 value diff, 1 unstable
-evidence  evidence/20260912T040717Z-a35ce1
-chain     07a62a4133006678
+evidence  evidence/20260912T041307Z-4725a2
+chain     4992dcdfbd0c7619
 ```
 
 That run is offline and takes about a second. It boots a bundled mock that
@@ -111,7 +111,7 @@ cd parity-gate
 pip install -e ".[dev]"
 
 parity-gate demo          # offline: bundled mock, ~1s, exits 2 by design
-pytest -q                 # 97 tests, no network
+pytest -q                 # 98 tests, no network
 ```
 
 Outputs land in `evidence/<run-id>/`:
@@ -273,7 +273,7 @@ and `pip install` of it should pull nothing.
 | `runner.py` | Orchestration and the verdict rules |
 | `mock/server.py` | The two-headed demo API, deterministic down to the flaky endpoint |
 
-**97 tests**, unit and integration, on Python 3.11–3.13 across Linux and Windows.
+**98 tests**, unit and integration, on Python 3.11–3.13 across Linux and Windows.
 The integration suite boots the mock, runs the whole pipeline, and asserts that
 each planted defect is the finding that comes out — including a control test
 that comparing a service to *itself* produces nothing. Two real bugs in the

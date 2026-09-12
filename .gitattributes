@@ -2,3 +2,7 @@
 * text=auto eol=lf
 *.png binary
 *.jpg binary
+
+# The committed sample bundle is hashed in its own manifest. Git must not
+# rewrite a single byte of it, or `parity-gate verify` fails after a clone.
+docs/evidence/** -text

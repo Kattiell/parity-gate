@@ -7,7 +7,7 @@
 | **Requirement** | REQ-CAT-01 (product listing keeps its item contract) |
 | **Found by** | `parity-gate` case `CAT-001`, contract-drift check |
 | **Environment** | candidate `/next` vs baseline `/legacy`, demo catalogue build |
-| **Evidence** | [`docs/evidence/report.md`](../evidence/report.md), record `CAT-001`, run chain `4a238a62…` |
+| **Evidence** | [`docs/evidence/report.md`](../evidence/report.md), record `CAT-001`, run chain `4992dcdf…` |
 
 ## Summary
 

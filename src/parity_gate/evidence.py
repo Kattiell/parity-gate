@@ -206,19 +206,31 @@ class Run:
         }
 
 
+def write_text(path: Path, text: str) -> str:
+    r"""Write UTF-8 with LF endings and return the file's SHA-256.
+
+    Pinning ``newline="\n"`` is not cosmetic: without it Python translates line
+    endings per platform, the same run produces different bytes on Windows and
+    Linux, and the recorded hash stops matching the file as soon as the bundle
+    crosses an OS or a git checkout. Evidence whose hash depends on where it was
+    generated is not evidence.
+    """
+    path.write_text(text, encoding="utf-8", newline="\n")
+    return sha256_file(path)
+
+
 def write_run(run: Run, directory: Path) -> dict[str, str]:
-    """Write ``run.json`` plus a manifest of file hashes. Returns the manifest."""
+    """Write ``run.json`` and return its entry for the manifest."""
     directory.mkdir(parents=True, exist_ok=True)
     run_file = directory / "run.json"
-    run_file.write_text(
-        json.dumps(run.to_dict(), indent=2, ensure_ascii=False, default=str), encoding="utf-8"
-    )
-    return {"run.json": sha256_file(run_file)}
+    payload = json.dumps(run.to_dict(), indent=2, ensure_ascii=False, default=str)
+    return {"run.json": write_text(run_file, payload)}
 
 
 def write_manifest(directory: Path, files: dict[str, str], chain_head: str, run_id: str) -> Path:
     manifest = directory / "manifest.json"
-    manifest.write_text(
+    write_text(
+        manifest,
         json.dumps(
             {
                 "run_id": run_id,
@@ -229,7 +241,6 @@ def write_manifest(directory: Path, files: dict[str, str], chain_head: str, run_
             },
             indent=2,
         ),
-        encoding="utf-8",
     )
     return manifest
 

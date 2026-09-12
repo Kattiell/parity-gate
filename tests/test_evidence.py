@@ -16,6 +16,7 @@ from parity_gate.evidence import (
     verify,
     write_manifest,
     write_run,
+    write_text,
 )
 
 
@@ -96,3 +97,19 @@ def test_summary_counts_breaking_drift_across_records() -> None:
     assert summary["breaking_drifts"] == 1
     assert summary["by_verdict"][FAIL] == 1
     assert summary["cases"] == 3
+
+
+def test_evidence_files_are_written_with_lf_on_every_platform(tmp_path: Path) -> None:
+    """A hash that depends on the operating system is not a hash of anything.
+
+    Python translates line endings per platform by default, which made the
+    committed sample bundle fail verification after a git checkout.
+    """
+    run = make_run()
+    files = write_run(run, tmp_path)
+    files["report.md"] = write_text(tmp_path / "report.md", "one\ntwo\n")
+    write_manifest(tmp_path, files, run.chain_head, run.run_id)
+
+    for name in ("run.json", "report.md", "manifest.json"):
+        assert b"\r\n" not in (tmp_path / name).read_bytes(), name
+    assert verify(tmp_path) == []

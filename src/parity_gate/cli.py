@@ -167,13 +167,8 @@ def _cmd_run(args: argparse.Namespace) -> int:
     bundle = Path(args.evidence) / run.run_id
     files = evidence.write_run(run, bundle)
 
-    markdown = bundle / "report.md"
-    markdown.write_text(report.render_markdown(run), encoding="utf-8")
-    files["report.md"] = evidence.sha256_file(markdown)
-
-    page = bundle / "report.html"
-    page.write_text(report.render_html(run), encoding="utf-8")
-    files["report.html"] = evidence.sha256_file(page)
+    files["report.md"] = evidence.write_text(bundle / "report.md", report.render_markdown(run))
+    files["report.html"] = evidence.write_text(bundle / "report.html", report.render_html(run))
 
     evidence.write_manifest(bundle, files, run.chain_head, run.run_id)
 
