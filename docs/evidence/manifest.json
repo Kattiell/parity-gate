@@ -1,12 +1,12 @@
 {
-  "run_id": "20260914T021657Z-7b4a1f",
-  "generated_at": "2026-09-14T02:16:58Z",
+  "run_id": "20260914T023330Z-706fb7",
+  "generated_at": "2026-09-14T02:33:30Z",
   "tool_version": "0.1.0",
-  "chain_head": "eee530873a1e5793d1bafb2e1cab681a2886bfcb2bcb5c6657cb2c76b956361d",
+  "chain_head": "c58ec76b96e7449b95857f901409c22d4f66827394cd35cb64cbca7e88065615",
   "files": {
-    "run.json": "5465805d7bd130f92725ead957a66bec7e5e93ecf82e9d4af8039e55677a423c",
-    "report.md": "b8f5d9e16b4b9ef90e6151ebaecec337ea48e33c218c8a79fa5cd7aad32cc280",
-    "report.html": "cceccc4b13243cb066687394e9cd73bc61b59e094b8158eff5dd4edc4871cdd4",
-    "report.sarif": "9bb9cde5b08bbd218dea70e2488f56345ccf2bd341049a2f6ab4c74ae98931e4"
+    "run.json": "c51231d7c212e27f6995947274db4e7c8520d60ae63f920a77f33ce8d427f8fe",
+    "report.md": "0fe7b65052840f4fc2819ae35ba3970635cdc65bd64ec0def27b88b7db636984",
+    "report.html": "782830524834c83bfc51f67c549ac347102b9591a355f46c7cbfc3ad1daa35e7",
+    "report.sarif": "6de6debb50ae3a7cdb0f9d2700b6a736343d2b81b7e16296544273b579e5e31d"
   }
 }

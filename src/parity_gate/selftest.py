@@ -31,6 +31,7 @@ wrong" is how these defects actually ship.
 from __future__ import annotations
 
 import copy
+import dataclasses
 import json
 import re
 from collections.abc import Callable, Iterator
@@ -358,7 +359,12 @@ def run(
     modes: tuple[str, ...] = MODES,
     max_sites: int = 25,
 ) -> Report:
-    """Inject the fault model into every sample and judge each mutant."""
+    """Inject the fault model into every sample and judge each mutant.
+
+    Waivers are set aside: they are the team's accepted exceptions, and a
+    fault the gate detects but a waiver accepts is still a fault detected.
+    """
+    suite = dataclasses.replace(suite, waivers=[])
     report = Report(suite_name=suite.name)
     for sample in samples:
         for operator in operators(suite):

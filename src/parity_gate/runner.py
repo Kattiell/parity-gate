@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 import threading
+import time
 import traceback
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -24,7 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from parity_gate import contracts, evidence, flaky, graphql, rules
+from parity_gate import contracts, evidence, flaky, graphql, rules, waivers
 from parity_gate.differ import Difference, DiffOptions, diff
 from parity_gate.evidence import ERROR, FAIL, PASS, WARN, Record, Run
 from parity_gate.httpclient import Client, Response
@@ -61,9 +62,10 @@ class Probe:
 class Runner:
     """Executes a :class:`~parity_gate.suite.Suite` and produces a :class:`Run`."""
 
-    def __init__(self, suite: Suite, *, on_case: Any = None) -> None:
+    def __init__(self, suite: Suite, *, on_case: Any = None, revision: str | None = None) -> None:
         self.suite = suite
         self.on_case = on_case
+        self.revision = revision
         # Loaded lazily: `record` has to run before the file exists.
         self.contract: contracts.Contract | None = None
         # One client per worker thread. urllib openers make no thread-safety
@@ -153,6 +155,11 @@ class Runner:
             candidate_url=suite.candidate.label,
             policy=suite.policy.to_dict(),
             mode="contract" if suite.baseline.is_recorded else "differential",
+            context=evidence.ci_context(self.revision),
+            sampling={
+                "repeats": suite.repeats,
+                "repeat_interval_ms": suite.repeat_interval_ms,
+            },
         )
 
     def record_contract(self, on_case: Any = None) -> contracts.Contract:
@@ -254,6 +261,8 @@ class Runner:
         ):
             run.add(record)
 
+        if self.suite.waivers:
+            run.waivers = waivers.summarise(self.suite.waivers, run.records, waivers.today())
         run.finished_at = evidence.utc_now()
         self.close()
         return run
@@ -319,10 +328,13 @@ class Runner:
         """Call one target ``repeats`` times and summarise what came back."""
         headers = {**target.resolved_headers(), **case.headers}
         url = target.url_for(case.path)
-        responses = [
-            self.client.request(case.method, url, headers=headers, body=case.request_body())
-            for _ in range(self.suite.repeats_for(case))
-        ]
+        responses: list[Response] = []
+        for index in range(self.suite.repeats_for(case)):
+            if index and self.suite.repeat_interval_ms:
+                time.sleep(self.suite.repeat_interval_ms / 1000)
+            responses.append(
+                self.client.request(case.method, url, headers=headers, body=case.request_body())
+            )
         return summarise(responses, self.suite.diff_options(case), headers)
 
 
@@ -388,7 +400,7 @@ def judge_contract(
             f"case {case.id!r} has no entry in the recorded contract, so its shape is "
             "not gated. Re-record after reviewing: parity-gate record --suite <suite>"
         )
-        record.verdict = decide(record, floor=WARN)
+        record.verdict = _settle(suite, record, floor=WARN)
         return record
 
     if candidate.stability and not candidate.stability.trustworthy:
@@ -397,7 +409,7 @@ def judge_contract(
             f"contract check skipped: candidate is {candidate.stability.verdict} across "
             f"{suite.repeats_for(case)} identical calls. Stabilise the endpoint first."
         )
-        record.verdict = decide(record, floor=WARN)
+        record.verdict = _settle(suite, record, floor=WARN)
         return record
 
     drifts, unchecked = compare(recorded.schema, candidate.schema)
@@ -412,7 +424,7 @@ def judge_contract(
     record.checks = evaluate_checks(case, candidate)
     record.checks.extend(_status_contract_checks(recorded, candidate))
     record.differences_suppressed = 0
-    record.verdict = decide(record)
+    record.verdict = _settle(suite, record)
     return record
 
 
@@ -449,7 +461,7 @@ def judge_differential(suite: Suite, case: Case, baseline: Probe, candidate: Pro
             + f" across {suite.repeats_for(case)} identical calls. "
             "Stabilise the endpoint before trusting any diff taken from it."
         )
-        record.verdict = decide(record, floor=WARN)
+        record.verdict = _settle(suite, record, floor=WARN)
         return record
 
     drifts, unchecked = compare(baseline.schema, candidate.schema)
@@ -471,8 +483,14 @@ def judge_differential(suite: Suite, case: Case, baseline: Probe, candidate: Pro
 
     record.checks = evaluate_checks(case, candidate)
     record.checks.extend(_status_parity_checks(baseline, candidate))
-    record.verdict = decide(record)
+    record.verdict = _settle(suite, record)
     return record
+
+
+def _settle(suite: Suite, record: Record, *, floor: str = PASS) -> str:
+    """Apply the suite's waivers to the findings, then decide the verdict."""
+    waivers.apply(record, suite.waivers, waivers.today())
+    return decide(record, floor=floor)
 
 
 def decide(record: Record, *, floor: str = PASS) -> str:
@@ -480,20 +498,25 @@ def decide(record: Record, *, floor: str = PASS) -> str:
 
     A failed assertion, a breaking drift or a value difference other than
     reordering fails the case. Anything else that was noticed (a non-breaking
-    drift, a reordering, a volatile body) is a warning. ``floor`` is the best a
-    case can do: a case whose comparison was skipped cannot pass, only warn.
+    drift, a reordering, a volatile body, a finding a waiver accepted) is a
+    warning. ``floor`` is the best a case can do: a case whose comparison was
+    skipped cannot pass, only warn.
     """
-    if any(not check["passed"] for check in record.checks):
+    checks = [c for c in record.checks if not c.get("waiver")]
+    drifts = [d for d in record.drifts if not d.get("waiver")]
+    differences = [d for d in record.differences if not d.get("waiver")]
+    if any(not check["passed"] for check in checks):
         return FAIL
-    if any(drift["severity"] == Severity.BREAKING.value for drift in record.drifts):
+    if any(drift["severity"] == Severity.BREAKING.value for drift in drifts):
         return FAIL
-    if any(difference["kind"] != "ORDER_ONLY" for difference in record.differences):
+    if any(difference["kind"] != "ORDER_ONLY" for difference in differences):
         return FAIL
     volatile = any(
         isinstance(side, dict) and side.get("verdict") == flaky.VOLATILE_BODY
         for side in record.stability.values()
     )
-    if record.drifts or record.differences or volatile:
+    waived = any(not c["passed"] for c in record.checks if c.get("waiver"))
+    if record.drifts or record.differences or volatile or waived:
         return WARN
     return floor
 
@@ -523,6 +546,7 @@ def evaluate_checks(case: Case, candidate: Probe) -> list[dict[str, Any]]:
                 "required_field",
                 required in present,
                 f"{required} is missing from the response",
+                path=required,
             )
         )
     for forbidden in case.forbidden_fields:
@@ -531,6 +555,7 @@ def evaluate_checks(case: Case, candidate: Probe) -> list[dict[str, Any]]:
                 "forbidden_field",
                 forbidden not in present,
                 f"{forbidden} must not be exposed but is present",
+                path=forbidden,
             )
         )
 
@@ -613,10 +638,11 @@ def _contained(work: Callable[[Case], Record]) -> Callable[[Case], Record]:
     return guarded
 
 
-def _check(name: str, passed: bool, failure_detail: str) -> dict[str, Any]:
+def _check(name: str, passed: bool, failure_detail: str, path: str = "$") -> dict[str, Any]:
     return {
         "rule": rules.rule_id(rules.CHECK, name),
         "name": name,
+        "path": path,
         "passed": passed,
         "detail": "" if passed else failure_detail,
     }

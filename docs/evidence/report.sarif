@@ -598,15 +598,15 @@
       "invocations": [
         {
           "executionSuccessful": true,
-          "startTimeUtc": "2026-09-14T02:16:57Z",
-          "endTimeUtc": "2026-09-14T02:16:57Z"
+          "startTimeUtc": "2026-09-14T02:33:30Z",
+          "endTimeUtc": "2026-09-14T02:33:30Z"
         }
       ],
       "properties": {
-        "runId": "20260914T021657Z-7b4a1f",
+        "runId": "20260914T023330Z-706fb7",
         "mode": "differential",
         "verdict": "FAIL",
-        "chainHead": "eee530873a1e5793d1bafb2e1cab681a2886bfcb2bcb5c6657cb2c76b956361d"
+        "chainHead": "c58ec76b96e7449b95857f901409c22d4f66827394cd35cb64cbca7e88065615"
       },
       "results": [
         {

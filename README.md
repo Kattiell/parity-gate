@@ -123,6 +123,34 @@ and classifies what varied, so the two get separated:
 No assertions are evaluated here. It measures the endpoints, not your
 expectations.
 
+**Across runs, not only across calls.** Three calls in a row cannot see a
+cache that expires hourly or a replica that rotates. `repeat_interval_ms`
+spaces the samples out, and the runs CI already makes are the slower
+repetition: every bundle records each case's verdict and the revision under
+test, so the history of an evidence directory answers what sampling cannot.
+An illustrative run over fourteen CI bundles:
+
+```
+$ parity-gate history evidence/ --fail-on-intermittent
+
+  INTERMITTENT catalog/OPS-002      14 runs, 5 flip(s); revision 3f2a1c9d0b1e gave FAIL, PASS
+  REGRESSED    catalog/CAT-001      14 runs, 1 flip(s)
+
+cases     1 intermittent, 1 regressed, 0 recovered, 12 steady
+```
+
+| History | Meaning |
+| --- | --- |
+| `INTERMITTENT` | Changed outcome and changed back, or two runs of the **same revision** disagreed |
+| `REGRESSED` | Passed, then failed and kept failing: a change, not noise |
+| `RECOVERED` | Failed, then passed and kept passing |
+| `STEADY` | The same outcome every run |
+
+Only bundles that still pass `verify` are read, and the revision comes from
+`--revision` or the usual CI variables (`GITHUB_SHA`, `CI_COMMIT_SHA`,
+`BUILD_SOURCEVERSION`, `GIT_COMMIT`). Keep enough bundles for it to matter:
+`--keep 30` rather than `--keep 1`.
+
 ### GraphQL, without lying about what is a read
 
 A GraphQL endpoint is JSON over HTTP, so everything above applies, but two
@@ -200,7 +228,7 @@ pip install -e ".[dev]"
 parity-gate demo --mode contract         # gate against a recorded contract
 parity-gate demo --mode stability        # measure the noise
 parity-gate demo                         # differential, two live services
-pytest -q                                # 250 tests, no network
+pytest -q                                # 279 tests, no network
 ```
 
 All of it runs against a bundled mock that serves a catalogue API twice: once
@@ -426,6 +454,8 @@ max_retries = 0                         # a retried 503 hides the flakiness
 workers = 1                             # raise it deliberately; it is someone's staging
 timeout_seconds = 10                    # a deadline for the whole response, not per read
 max_response_bytes = 10485760           # a runaway body is refused, not loaded
+repeat_interval_ms = 0                  # space the samples out to see slower flakiness
+max_waiver_days = 90                    # no waiver may be dated further out than this
 mask_paths = ["$.meta.requestId", "$.*.updatedAt"]
 
 [policy.array_keys]
@@ -445,6 +475,35 @@ max_latency_ms = 2000
 
 Paths are written as `$.products[].id`. A mask written with `[]` covers every
 item, whether the tool addressed it as `[0]` or `[id=7]`.
+
+### Accepting a finding on the record
+
+Sometimes a finding is known and accepted for a while: a field retired on
+purpose, a consumer already migrated. Deleting the assertion removes the check
+along with the noise, and running without `--strict` forever hides the next
+real problem. A waiver says it instead, in the suite, where it is reviewed
+like code:
+
+```toml
+[[waivers]]
+rule = "PG1001"                          # or its name, FIELD_REMOVED
+case = "CAT-*"                           # glob over case ids (default: all)
+path = "$.products[].stock"              # glob over the finding path (default: all)
+owner = "storefront-team"
+expires = 2026-10-31
+ticket = "CAT-4412"
+reason = "stock moved to the availability endpoint; storefront v5 no longer reads it"
+```
+
+- A waived finding still appears in every report, and in SARIF as a
+  suppressed alert carrying the justification. A case whose only failures
+  are waived ends as `WARN`, never `PASS`.
+- **After `expires` it waives nothing**, and the run names the lapsed waiver
+  and its owner. A waiver that matched no finding is listed as unused.
+- `owner`, `expires` and `reason` are required, and a date beyond
+  `policy.max_waiver_days` (90 by default) is refused.
+- Only findings about the API can be waived. An unstable endpoint or a case
+  that could not be judged is not something to accept; it is something to fix.
 
 ## Safety
 
@@ -507,6 +566,7 @@ parity-gate run       --suite FILE [--strict] [--evidence DIR] # gate against it
 parity-gate stability --suite FILE                             # measure the noise
 parity-gate import-openapi --spec SPEC --out FILE               # a suite from a spec
 parity-gate selftest  (--demo | --suite FILE)                  # measure what the gate catches
+parity-gate history   DIR [--fail-on-intermittent]             # flaky, regressed or recovered, across runs
 parity-gate verify    DIR                                      # re-check an evidence bundle
 parity-gate scan      PATH...                                  # fail on a credential in a file
 parity-gate demo      [--mode MODE]                            # offline, bundled mock
@@ -520,6 +580,7 @@ parity-gate mock      [--port 8799]                            # serve the mock 
 | `--filter PATTERN` | run a subset: a glob against a case id or requirement, or a substring of the title. Repeatable. `--filter 'CAT-*'`, `--filter REQ-SEC-01`, `--filter orders` |
 | `--keep N` | keep only the N most recent evidence bundles and delete the rest. Off by default; only directories carrying a manifest are ever touched |
 | `--sarif PATH` | `run` and `stability`: also write the SARIF log to a fixed path, for an upload step |
+| `--revision SHA` | `run` and `stability`: the revision under test, for `history`; read from the CI environment when omitted |
 
 If the `parity-gate` script is not on your `PATH` (common on Windows, where
 `pip` installs it under `Scripts\`), `python -m parity_gate` is the same
@@ -546,11 +607,13 @@ and installing it should pull nothing.
 | `sarif.py` | SARIF 2.1.0, located on the contract line or the suite case |
 | `rules.py` | The stable rule catalogue every finding is reported under |
 | `selftest.py` | Fault injection against the real judging code: detection and false-alarm rates |
+| `waivers.py` | Accepted findings with an owner, a reason and an expiry that is enforced |
+| `history.py` | Cross-run classification from verified bundles: intermittent, regressed, recovered |
 | `httpclient.py` | Pooled `http.client`: response deadline and size cap, retries, re-validated redirects |
 | `runner.py` | Orchestration, and pure judging functions with the verdict rules in one place |
 | `mock/server.py` | The two-headed demo API, deterministic down to the flaky endpoint |
 
-**250 tests**, unit and integration, offline. [CI](.github/workflows/ci.yml)
+**279 tests**, unit and integration, offline. [CI](.github/workflows/ci.yml)
 runs them on Python 3.11, 3.12 and 3.13, on Linux and Windows, next to lint,
 format, type checking, a credential scan of the repository, a check that the
 committed evidence bundle still verifies and the selftest above; the badge at
@@ -579,6 +642,8 @@ Both are fixed, both now have a regression test, and the write-up
 - [SECURITY.md](SECURITY.md): threat model and controls
 - [Review findings](docs/review-2026-09-12.md): an adversarial review, what it
   broke, what was fixed, and what is still open
+- [Second review](docs/review-2026-09-13.md): the CI that did not exist, three
+  robustness defects, and the false negative the selftest found
 - [Sample evidence bundle](docs/evidence/): report, machine record, manifest
 - Bug reports written from real findings:
   [BUG-001](docs/bugs/BUG-001-price-serialised-as-string.md) ·
@@ -617,8 +682,11 @@ wrong places:
   faithfully reproduced by both sides passes.
 - **A recording is only as good as the day it was taken.** Record from a version
   you actually believe in, and review the file before committing it.
-- **Stability is sampled, not proven.** Three repeats taken back to back find
-  frequent flakiness, not flakiness on a slower period than that.
+- **Stability is sampled, not proven.** Repeats within one run find frequent
+  flakiness; `repeat_interval_ms` and `history` widen the window, but a period
+  longer than the runs you keep is still invisible.
+- **The selftest measures a fixed fault model.** 100% means every fault in that
+  model is caught, not that every possible defect is.
 - **Redaction is pattern-based.** A secret in a format nobody has seen survives
   it. Read evidence before attaching it to a public issue.
 - **gRPC and long-lived streams are out of scope.** It speaks JSON over HTTP;

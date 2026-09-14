@@ -6,8 +6,16 @@
     "python": "3.13.5",
     "platform": "Windows-11-10.0.26200-SP0"
   },
-  "run_id": "20260914T021657Z-7b4a1f",
+  "run_id": "20260914T023330Z-706fb7",
   "mode": "differential",
+  "context": {
+    "revision": null,
+    "ci": null
+  },
+  "sampling": {
+    "repeats": 3,
+    "repeat_interval_ms": 0
+  },
   "suite": {
     "name": "demo-catalog",
     "path": "src\\parity_gate\\demo\\demo-catalog.toml",
@@ -35,8 +43,8 @@
     "max_retries": 0,
     "workers": 1
   },
-  "started_at": "2026-09-14T02:16:57Z",
-  "finished_at": "2026-09-14T02:16:57Z",
+  "started_at": "2026-09-14T02:33:30Z",
+  "finished_at": "2026-09-14T02:33:30Z",
   "summary": {
     "verdict": "FAIL",
     "cases": 7,
@@ -52,8 +60,10 @@
     "values_compared": true,
     "unstable_cases": 1,
     "unchecked_paths": 0,
-    "volatile_cases": 1
+    "volatile_cases": 1,
+    "waived_findings": 0
   },
+  "waivers": {},
   "traceability": {
     "REQ-CAT-01": [
       {
@@ -112,7 +122,7 @@
       }
     ]
   },
-  "chain_head": "eee530873a1e5793d1bafb2e1cab681a2886bfcb2bcb5c6657cb2c76b956361d",
+  "chain_head": "c58ec76b96e7449b95857f901409c22d4f66827394cd35cb64cbca7e88065615",
   "records": [
     {
       "case": {
@@ -130,42 +140,49 @@
         {
           "rule": "PG3001",
           "name": "status",
+          "path": "$",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3005",
           "name": "required_field",
+          "path": "$.products",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3005",
           "name": "required_field",
+          "path": "$.total",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3005",
           "name": "required_field",
+          "path": "$.skip",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3005",
           "name": "required_field",
+          "path": "$.limit",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3008",
           "name": "latency",
+          "path": "$",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3002",
           "name": "status_parity",
+          "path": "$",
           "passed": true,
           "detail": ""
         }
@@ -246,8 +263,8 @@
             200,
             200
           ],
-          "p50_ms": 0.82,
-          "max_ms": 1.93,
+          "p50_ms": 0.28,
+          "max_ms": 1.08,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -259,8 +276,8 @@
             200,
             200
           ],
-          "p50_ms": 0.41,
-          "max_ms": 0.43,
+          "p50_ms": 0.27,
+          "max_ms": 0.27,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -269,7 +286,7 @@
         "url": "http://127.0.0.1:8799/legacy/products?limit=4",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 1.93,
+        "elapsed_ms": 1.08,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -277,7 +294,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "658",
           "cache-control": "no-store"
@@ -346,7 +363,7 @@
         "url": "http://127.0.0.1:8799/next/products?limit=4",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.43,
+        "elapsed_ms": 0.27,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -354,7 +371,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "780",
           "cache-control": "no-store"
@@ -685,7 +702,7 @@
       },
       "error": null,
       "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
-      "hash": "71489c2699d7ede95dd893a0358355ed0ee9768a0204b6de62355c1014c42ecf"
+      "hash": "1a3ade5e4421dbd2478d31122a2eadec255b77597a6d42c364ffd70a7d84e61c"
     },
     {
       "case": {
@@ -703,30 +720,35 @@
         {
           "rule": "PG3001",
           "name": "status",
+          "path": "$",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3005",
           "name": "required_field",
+          "path": "$.id",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3005",
           "name": "required_field",
+          "path": "$.price",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3005",
           "name": "required_field",
+          "path": "$.stock",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3002",
           "name": "status_parity",
+          "path": "$",
           "passed": true,
           "detail": ""
         }
@@ -744,8 +766,8 @@
             200,
             200
           ],
-          "p50_ms": 0.49,
-          "max_ms": 0.57,
+          "p50_ms": 0.33,
+          "max_ms": 0.34,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -757,8 +779,8 @@
             200,
             200
           ],
-          "p50_ms": 0.59,
-          "max_ms": 0.73,
+          "p50_ms": 0.3,
+          "max_ms": 0.33,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -767,7 +789,7 @@
         "url": "http://127.0.0.1:8799/legacy/products/1",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.49,
+        "elapsed_ms": 0.3,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -775,7 +797,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "131",
           "cache-control": "no-store"
@@ -798,7 +820,7 @@
         "url": "http://127.0.0.1:8799/next/products/1",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.73,
+        "elapsed_ms": 0.33,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -806,7 +828,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "131",
           "cache-control": "no-store"
@@ -966,8 +988,8 @@
         }
       },
       "error": null,
-      "previous_hash": "71489c2699d7ede95dd893a0358355ed0ee9768a0204b6de62355c1014c42ecf",
-      "hash": "563f890e40c47b409ca7022243774e570eacd54552bdc8e048070fc4d10a8a75"
+      "previous_hash": "1a3ade5e4421dbd2478d31122a2eadec255b77597a6d42c364ffd70a7d84e61c",
+      "hash": "e76564d55b1eeee9ecc61ce84400642aa63fce30fb19914178f6940ae31740f3"
     },
     {
       "case": {
@@ -985,12 +1007,14 @@
         {
           "rule": "PG3001",
           "name": "status",
+          "path": "$",
           "passed": false,
           "detail": "expected [404], got 200"
         },
         {
           "rule": "PG3002",
           "name": "status_parity",
+          "path": "$",
           "passed": false,
           "detail": "baseline answered [404], candidate answered [200]"
         }
@@ -1030,8 +1054,8 @@
             404,
             404
           ],
-          "p50_ms": 0.37,
-          "max_ms": 0.42,
+          "p50_ms": 0.24,
+          "max_ms": 0.34,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1043,8 +1067,8 @@
             200,
             200
           ],
-          "p50_ms": 0.36,
-          "max_ms": 0.37,
+          "p50_ms": 0.29,
+          "max_ms": 0.34,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -1053,7 +1077,7 @@
         "url": "http://127.0.0.1:8799/legacy/products/999",
         "method": "GET",
         "status": 404,
-        "elapsed_ms": 0.42,
+        "elapsed_ms": 0.34,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1061,7 +1085,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "59",
           "cache-control": "no-store"
@@ -1077,7 +1101,7 @@
         "url": "http://127.0.0.1:8799/next/products/999",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.36,
+        "elapsed_ms": 0.27,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1085,7 +1109,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "14",
           "cache-control": "no-store"
@@ -1146,8 +1170,8 @@
         }
       },
       "error": null,
-      "previous_hash": "563f890e40c47b409ca7022243774e570eacd54552bdc8e048070fc4d10a8a75",
-      "hash": "4a3f39ad48193e642582404c14f8994cc379f92990e6b822706052e618625ce4"
+      "previous_hash": "e76564d55b1eeee9ecc61ce84400642aa63fce30fb19914178f6940ae31740f3",
+      "hash": "773901e713dcdcafac0288f40710fb4cac1a8515f5d963eae6f5997be9d262fb"
     },
     {
       "case": {
@@ -1165,24 +1189,28 @@
         {
           "rule": "PG3001",
           "name": "status",
+          "path": "$",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3006",
           "name": "forbidden_field",
+          "path": "$.products[].internalCost",
           "passed": false,
           "detail": "$.products[].internalCost must not be exposed but is present"
         },
         {
           "rule": "PG3006",
           "name": "forbidden_field",
+          "path": "$.products[].margin",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3002",
           "name": "status_parity",
+          "path": "$",
           "passed": true,
           "detail": ""
         }
@@ -1252,8 +1280,8 @@
             200,
             200
           ],
-          "p50_ms": 0.52,
-          "max_ms": 0.58,
+          "p50_ms": 0.29,
+          "max_ms": 0.38,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1265,8 +1293,8 @@
             200,
             200
           ],
-          "p50_ms": 0.44,
-          "max_ms": 1.41,
+          "p50_ms": 0.3,
+          "max_ms": 0.31,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -1275,7 +1303,7 @@
         "url": "http://127.0.0.1:8799/legacy/products?limit=2",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.52,
+        "elapsed_ms": 0.38,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1283,7 +1311,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "402",
           "cache-control": "no-store"
@@ -1329,7 +1357,7 @@
         "url": "http://127.0.0.1:8799/next/products?limit=2",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.43,
+        "elapsed_ms": 0.3,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1337,7 +1365,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "461",
           "cache-control": "no-store"
@@ -1641,8 +1669,8 @@
         }
       },
       "error": null,
-      "previous_hash": "4a3f39ad48193e642582404c14f8994cc379f92990e6b822706052e618625ce4",
-      "hash": "22661b9d05de52aa678261f68050f31928e63b655cbf6ed47c01d382e2290d96"
+      "previous_hash": "773901e713dcdcafac0288f40710fb4cac1a8515f5d963eae6f5997be9d262fb",
+      "hash": "3163cbfd942146ec70090b78c61ef89fbea3047426f467e92f195c62a26b1152"
     },
     {
       "case": {
@@ -1660,18 +1688,21 @@
         {
           "rule": "PG3001",
           "name": "status",
+          "path": "$",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3005",
           "name": "required_field",
+          "path": "$.status",
           "passed": true,
           "detail": ""
         },
         {
           "rule": "PG3002",
           "name": "status_parity",
+          "path": "$",
           "passed": true,
           "detail": ""
         }
@@ -1689,8 +1720,8 @@
             200,
             200
           ],
-          "p50_ms": 0.38,
-          "max_ms": 0.63,
+          "p50_ms": 0.29,
+          "max_ms": 0.34,
           "volatile_paths": [
             "$.uptimeSeconds"
           ],
@@ -1704,8 +1735,8 @@
             200,
             200
           ],
-          "p50_ms": 0.34,
-          "max_ms": 0.36,
+          "p50_ms": 0.27,
+          "max_ms": 0.29,
           "volatile_paths": [
             "$.uptimeSeconds"
           ],
@@ -1716,7 +1747,7 @@
         "url": "http://127.0.0.1:8799/legacy/health",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.63,
+        "elapsed_ms": 0.34,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1724,7 +1755,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "39",
           "cache-control": "no-store"
@@ -1740,7 +1771,7 @@
         "url": "http://127.0.0.1:8799/next/health",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.36,
+        "elapsed_ms": 0.29,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1748,7 +1779,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "39",
           "cache-control": "no-store"
@@ -1817,8 +1848,8 @@
         }
       },
       "error": null,
-      "previous_hash": "22661b9d05de52aa678261f68050f31928e63b655cbf6ed47c01d382e2290d96",
-      "hash": "921ec558041d201efcde841e7a59d1197b518ee85eb7b994961ab85139612bac"
+      "previous_hash": "3163cbfd942146ec70090b78c61ef89fbea3047426f467e92f195c62a26b1152",
+      "hash": "c65def89ef6b528044cbd2cb3102ffe7a6b59a2a3229a83b1952f610286c293f"
     },
     {
       "case": {
@@ -1836,6 +1867,7 @@
         {
           "rule": "PG3001",
           "name": "status",
+          "path": "$",
           "passed": true,
           "detail": ""
         }
@@ -1853,8 +1885,8 @@
             200,
             200
           ],
-          "p50_ms": 0.44,
-          "max_ms": 0.61,
+          "p50_ms": 0.31,
+          "max_ms": 0.32,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1866,8 +1898,8 @@
             503,
             200
           ],
-          "p50_ms": 0.4,
-          "max_ms": 0.81,
+          "p50_ms": 0.23,
+          "max_ms": 0.33,
           "volatile_paths": [],
           "detail": "status varied across identical calls: [200, 503]"
         }
@@ -1876,7 +1908,7 @@
         "url": "http://127.0.0.1:8799/legacy/inventory/sync-status",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.61,
+        "elapsed_ms": 0.32,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1884,7 +1916,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "32",
           "cache-control": "no-store"
@@ -1900,7 +1932,7 @@
         "url": "http://127.0.0.1:8799/next/inventory/sync-status",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.4,
+        "elapsed_ms": 0.33,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1908,7 +1940,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "32",
           "cache-control": "no-store"
@@ -1922,8 +1954,8 @@
       },
       "schema": {},
       "error": "parity comparison skipped: candidate is FLAKY_STATUS across 3 identical calls. Stabilise the endpoint before trusting any diff taken from it.",
-      "previous_hash": "921ec558041d201efcde841e7a59d1197b518ee85eb7b994961ab85139612bac",
-      "hash": "b4e3f6401b3454e68a11e60bf862b12d595faf5808864aa6ac767a1dec1f2cde"
+      "previous_hash": "c65def89ef6b528044cbd2cb3102ffe7a6b59a2a3229a83b1952f610286c293f",
+      "hash": "5b55062974c5b686a71f5782f1e4b6e17fcc1d03cc0f23e8e023bb77c144b4d6"
     },
     {
       "case": {
@@ -1941,12 +1973,14 @@
         {
           "rule": "PG3007",
           "name": "graphql_errors",
+          "path": "$",
           "passed": false,
           "detail": "the response carries GraphQL errors: Cannot resolve field 'stock' on type 'Product'"
         },
         {
           "rule": "PG3002",
           "name": "status_parity",
+          "path": "$",
           "passed": true,
           "detail": ""
         }
@@ -2006,8 +2040,8 @@
             200,
             200
           ],
-          "p50_ms": 0.42,
-          "max_ms": 0.51,
+          "p50_ms": 0.23,
+          "max_ms": 0.28,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -2019,8 +2053,8 @@
             200,
             200
           ],
-          "p50_ms": 0.43,
-          "max_ms": 0.46,
+          "p50_ms": 0.23,
+          "max_ms": 0.24,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -2029,7 +2063,7 @@
         "url": "http://127.0.0.1:8799/legacy/graphql",
         "method": "POST",
         "status": 200,
-        "elapsed_ms": 0.51,
+        "elapsed_ms": 0.28,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -2037,7 +2071,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "298",
           "cache-control": "no-store"
@@ -2078,7 +2112,7 @@
         "url": "http://127.0.0.1:8799/next/graphql",
         "method": "POST",
         "status": 200,
-        "elapsed_ms": 0.46,
+        "elapsed_ms": 0.24,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -2086,7 +2120,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
+          "date": "Mon, 14 Sep 2026 02:33:30 GMT",
           "content-type": "application/json",
           "content-length": "434",
           "cache-control": "no-store"
@@ -2341,8 +2375,8 @@
         }
       },
       "error": null,
-      "previous_hash": "b4e3f6401b3454e68a11e60bf862b12d595faf5808864aa6ac767a1dec1f2cde",
-      "hash": "eee530873a1e5793d1bafb2e1cab681a2886bfcb2bcb5c6657cb2c76b956361d"
+      "previous_hash": "5b55062974c5b686a71f5782f1e4b6e17fcc1d03cc0f23e8e023bb77c144b4d6",
+      "hash": "c58ec76b96e7449b95857f901409c22d4f66827394cd35cb64cbca7e88065615"
     }
   ]
 }

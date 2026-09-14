@@ -44,6 +44,10 @@ _SARIF_HELP = (
     "also write the SARIF log to this fixed path, for a CI step that uploads it; "
     "every bundle carries its own report.sarif regardless"
 )
+_REVISION_HELP = (
+    "the revision under test, recorded for `history`; defaults to GITHUB_SHA, "
+    "CI_COMMIT_SHA, BUILD_SOURCEVERSION or GIT_COMMIT when set"
+)
 _KEEP_HELP = (
     "after writing, keep only the N most recent evidence bundles in the "
     "directory and delete the rest"
@@ -96,6 +100,7 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--filter", action="append", default=[], metavar="PATTERN", help=_FILTER_HELP)
     run.add_argument("--keep", type=int, default=None, metavar="N", help=_KEEP_HELP)
     run.add_argument("--sarif", type=Path, default=None, metavar="PATH", help=_SARIF_HELP)
+    run.add_argument("--revision", default=None, metavar="SHA", help=_REVISION_HELP)
     run.add_argument("--quiet", action="store_true", help="only print the final summary")
     run.set_defaults(handler=_cmd_run)
 
@@ -149,6 +154,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     stability.add_argument("--keep", type=int, default=None, metavar="N", help=_KEEP_HELP)
     stability.add_argument("--sarif", type=Path, default=None, metavar="PATH", help=_SARIF_HELP)
+    stability.add_argument("--revision", default=None, metavar="SHA", help=_REVISION_HELP)
     stability.add_argument("--quiet", action="store_true")
     stability.set_defaults(handler=_cmd_stability)
 
@@ -233,6 +239,24 @@ def _parser() -> argparse.ArgumentParser:
     selftest.add_argument("--quiet", action="store_true", help="only print the totals")
     selftest.set_defaults(handler=_cmd_selftest)
 
+    history = sub.add_parser(
+        "history", help="classify every case across the evidence bundles already on disk"
+    )
+    history.add_argument("directory", type=Path, help="the evidence directory runs write into")
+    history.add_argument(
+        "--last", type=int, default=None, metavar="N", help="only the N most recent bundles"
+    )
+    history.add_argument(
+        "--json", dest="json_out", type=Path, default=None, help="write the full timeline here"
+    )
+    history.add_argument(
+        "--fail-on-intermittent",
+        action="store_true",
+        help="exit 2 when any case is intermittent across runs",
+    )
+    history.add_argument("--all", action="store_true", help="also list steady cases")
+    history.set_defaults(handler=_cmd_history)
+
     mock = sub.add_parser("mock", help="serve the bundled two-variant mock API")
     mock.add_argument("--port", type=int, default=8799)
     mock.set_defaults(handler=_cmd_mock)
@@ -300,7 +324,11 @@ def _cmd_run(args: argparse.Namespace) -> int:
             return EXIT_USAGE
 
     try:
-        runner = Runner(loaded, on_case=None if args.quiet else _print_case)
+        runner = Runner(
+            loaded,
+            on_case=None if args.quiet else _print_case,
+            revision=getattr(args, "revision", None),
+        )
         headline = f"suite  {loaded.name}  ({len(loaded.cases)} cases, {loaded.repeats} repeats)"
         _say(headline, args.quiet)
         baseline_label = (
@@ -348,6 +376,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
             f"unchecked {summary['unchecked_paths']} path(s) - a collection was empty, "
             "so nothing was learned about them"
         )
+    _print_waivers(run.waivers)
     print(f"evidence  {bundle}")
     print(f"chain     {run.chain_head[:16]}")
 
@@ -499,7 +528,7 @@ def _cmd_stability(args: argparse.Namespace) -> int:
     try:
         if args.with_mock:
             server = _start_mock(loaded, args.quiet)
-        runner = Runner(loaded)
+        runner = Runner(loaded, revision=getattr(args, "revision", None))
         _say(
             f"sampling {loaded.name} at {loaded.candidate.base_url} "
             f"({len(loaded.cases)} cases x {loaded.repeats} calls)\n",
@@ -800,6 +829,76 @@ def _print_selftest_table(result, selftest) -> None:  # type: ignore[no-untyped-
             print(f"  ... and {len(wrong) - 40} more; pass --json to see them all")
 
 
+def _print_waivers(summary: dict) -> None:  # type: ignore[type-arg]
+    if not summary:
+        return
+    applied, expired, unused = (summary.get(k, []) for k in ("applied", "expired", "unused"))
+    print(
+        f"waivers   {len(applied)} applied, {len(expired)} expired, {len(unused)} unused"
+        + (" (expired waivers waive nothing)" if expired else "")
+    )
+    for label, entries in (("expired", expired), ("unused", unused)):
+        for w in entries:
+            print(
+                f"          {label:<8}{w['rule']} {w['case']} {w['path']}  owner {w['owner']}, "
+                f"expires {w['expires']}" + (f", {w['ticket']}" if w.get("ticket") else "")
+            )
+
+
+def _cmd_history(args: argparse.Namespace) -> int:
+    from parity_gate import history as history_module
+
+    root = Path(args.directory)
+    if not root.is_dir():
+        _err(f"{root} is not a directory")
+        return EXIT_USAGE
+    found = history_module.read(root, last=args.last)
+    if not found.bundles_read:
+        _err(f"no verified evidence bundle under {root}")
+        for name, problems in found.rejected.items():
+            _err(f"  rejected {name}: {problems[0]}")
+        return EXIT_USAGE
+
+    print(
+        f"history   {root}  ({found.bundles_read} verified bundle(s)"
+        + (f", {len(found.rejected)} rejected" if found.rejected else "")
+        + ")\n"
+    )
+    for case in found.cases:
+        if case.classification == history_module.STEADY and not args.all:
+            continue
+        detail = f"{len(case.observations)} runs, {case.flips} flip(s)"
+        if case.disagreeing_revisions:
+            revision, verdicts = next(iter(case.disagreeing_revisions.items()))
+            detail += f"; revision {revision[:12]} gave {', '.join(verdicts)}"
+        if len(case.statuses_seen) > 1:
+            detail += f"; statuses seen {case.statuses_seen}"
+        print(f"  {case.classification:<13}{case.suite}/{case.case_id:<12} {detail}")
+
+    counts = {
+        label: len(found.by(label))
+        for label in (
+            history_module.INTERMITTENT,
+            history_module.REGRESSED,
+            history_module.RECOVERED,
+            history_module.STEADY,
+        )
+    }
+    print("\ncases     " + ", ".join(f"{n} {label.lower()}" for label, n in counts.items()))
+    for name, problems in found.rejected.items():
+        print(f"rejected  {name}: {problems[0]}")
+    if args.json_out:
+        args.json_out.parent.mkdir(parents=True, exist_ok=True)
+        args.json_out.write_text(
+            json.dumps(found.to_dict(), indent=2) + "\n", encoding="utf-8", newline="\n"
+        )
+        print(f"timeline  {args.json_out}")
+
+    if args.fail_on_intermittent and counts[history_module.INTERMITTENT]:
+        return EXIT_GATE_FAILED
+    return EXIT_OK
+
+
 def _cmd_mock(args: argparse.Namespace) -> int:
     from parity_gate.mock import serve_forever
 
@@ -809,15 +908,20 @@ def _cmd_mock(args: argparse.Namespace) -> int:
 
 def _print_case(case, record) -> None:  # type: ignore[no-untyped-def]
     marks: list[str] = []
-    breaking = sum(1 for d in record.drifts if d["severity"] == "breaking")
+    breaking = [d for d in record.drifts if d["severity"] == "breaking"]
     if breaking:
-        marks.append(f"{breaking} breaking drift")
+        waived = sum(1 for d in breaking if d.get("waiver"))
+        marks.append(f"{len(breaking)} breaking drift" + (f" ({waived} waived)" if waived else ""))
     if record.differences:
         marks.append(f"{len(record.differences)} diff")
     stability = record.stability.get("candidate", {}).get("verdict")
     if stability and stability != "STABLE":
         marks.append(stability.lower())
-    failed = [c["name"] for c in record.checks if not c["passed"]]
+    failed = [
+        c["name"] + (" (waived)" if c.get("waiver") else "")
+        for c in record.checks
+        if not c["passed"]
+    ]
     if failed:
         marks.append("failed: " + ", ".join(failed))
 

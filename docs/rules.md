@@ -1,7 +1,9 @@
 # Rule catalogue
 
 Every finding parity-gate reports carries one of these ids: in `run.json`, in
-`report.md` and in `report.sarif`. An id is never renumbered and never reused, and
+`report.md`, in `report.sarif`, and in the `rule` field of a suite's
+`[[waivers]]` (drift, value differences and assertions only; PG4xxx and
+PG5xxx cannot be waived). An id is never renumbered and never reused, and
 `tests/test_rules.py` pins the whole table so a change to it is a decision
 made in review.
 

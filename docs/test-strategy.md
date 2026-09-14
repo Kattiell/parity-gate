@@ -101,7 +101,8 @@ disposable.
 
 **Exit.** Zero `breaking` drift findings and zero value differences on cases
 marked `critical` or `high`. `WARN` is acceptable at release with a named owner
-per warning. Every `FLAKY_STATUS` and `FLAKY_SHAPE` finding is resolved before
+per warning; a finding accepted for longer than one release is written down as a
+`[[waivers]]` entry with that owner, a reason and an expiry the gate enforces. Every `FLAKY_STATUS` and `FLAKY_SHAPE` finding is resolved before
 its case's result counts for anything, because an unstable endpoint produces no
 usable comparison.
 

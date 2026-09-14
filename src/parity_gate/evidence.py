@@ -138,6 +138,14 @@ class Run:
     #: values, so reporting "0 value differences" without saying so would read
     #: as "no values changed" instead of "values were not checked".
     mode: str = "differential"
+    #: Where and on what this ran: the revision under test and the CI system,
+    #: so `parity-gate history` can tell a flaky case (two outcomes on one
+    #: revision) from a regression (a new outcome on a new one).
+    context: dict[str, Any] = field(default_factory=dict)
+    #: How each endpoint was sampled, which bounds what stability can mean.
+    sampling: dict[str, Any] = field(default_factory=dict)
+    #: Which waivers applied, which lapsed and which matched nothing.
+    waivers: dict[str, Any] = field(default_factory=dict)
     started_at: str = field(default_factory=utc_now)
     finished_at: str | None = None
     records: list[Record] = field(default_factory=list)
@@ -189,6 +197,8 @@ class Run:
             },
             "run_id": self.run_id,
             "mode": self.mode,
+            "context": self.context,
+            "sampling": self.sampling,
             "suite": {
                 "name": self.suite_name,
                 "path": self.suite_path,
@@ -214,7 +224,9 @@ class Run:
                 "unstable_cases": sum(1 for r in self.records if _is_unstable(r)),
                 "unchecked_paths": sum(len(r.unchecked_paths) for r in self.records),
                 "volatile_cases": sum(1 for r in self.records if _is_volatile(r)),
+                "waived_findings": sum(1 for r in self.records for _ in _waived(r)),
             },
+            "waivers": self.waivers,
             "traceability": self.traceability(),
             "chain_head": self.chain_head,
             "records": [record.to_dict() for record in self.records],
@@ -306,6 +318,39 @@ def verify(directory: Path) -> list[str]:
         problems.append("chain_head does not match the last record hash")
 
     return problems
+
+
+def ci_context(revision: str | None = None) -> dict[str, Any]:
+    """The revision under test and the CI system, from the usual variables."""
+    env = os.environ
+    found = revision or next(
+        (
+            env[name]
+            for name in (
+                "PARITY_GATE_REVISION",
+                "GITHUB_SHA",
+                "CI_COMMIT_SHA",
+                "BUILD_SOURCEVERSION",
+                "GIT_COMMIT",
+            )
+            if env.get(name)
+        ),
+        None,
+    )
+    systems = {
+        "GITHUB_ACTIONS": "github-actions",
+        "GITLAB_CI": "gitlab-ci",
+        "TF_BUILD": "azure-pipelines",
+        "JENKINS_URL": "jenkins",
+    }
+    ci = next((label for name, label in systems.items() if env.get(name)), None)
+    return {"revision": found, "ci": ci}
+
+
+def _waived(record: Record) -> list[dict[str, Any]]:
+    findings = [c for c in record.checks if not c.get("passed")]
+    findings += list(record.drifts) + list(record.differences)
+    return [f for f in findings if f.get("waiver")]
 
 
 def _is_unstable(record: Record) -> bool:
