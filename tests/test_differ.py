@@ -115,7 +115,7 @@ def test_is_masked_matches_generalised_and_literal_paths() -> None:
 def test_a_failed_key_match_is_announced_rather_than_silently_positional() -> None:
     """Asking for identity matching and getting position without being told is
     how a reader ends up blaming the API for noise the configuration caused."""
-    base = {"products": [{"id": 1, "v": 1}, {"id": 1, "v": 2}]}   # id is not unique
+    base = {"products": [{"id": 1, "v": 1}, {"id": 1, "v": 2}]}  # id is not unique
     cand = {"products": [{"id": 1, "v": 9}, {"id": 2, "v": 2}]}
     found = kinds(base, cand, DiffOptions(array_keys={"$.products": "id"}))
     assert ("KEY_MATCH_UNAVAILABLE", "$.products") in found

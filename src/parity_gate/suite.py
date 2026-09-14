@@ -18,7 +18,7 @@ from fnmatch import fnmatch
 from pathlib import Path
 from typing import Any
 
-from parity_gate import graphql
+from parity_gate import graphql, waivers
 from parity_gate.differ import DiffOptions
 from parity_gate.safety import Policy, scan_for_secrets
 
@@ -151,6 +151,11 @@ class Suite:
     array_keys: dict[str, str] = field(default_factory=dict)
     ignore_array_order: bool = True
     float_tolerance: float = 0.0
+    #: Pause between the repeated calls of one case. Zero samples back to
+    #: back, which finds frequent flakiness; spacing them out is how a slower
+    #: period (a cache expiring, a replica rotating) gets a chance to show.
+    repeat_interval_ms: int = 0
+    waivers: list[waivers.Waiver] = field(default_factory=list)
 
     def diff_options(self, case: Case) -> DiffOptions:
         """Suite-level masks plus the case's own, which is the common shape."""
@@ -213,7 +218,7 @@ def load(path: str | Path) -> Suite:
         raise SuiteError(
             "refusing to run: the suite file contains what looks like a live credential.\n  "
             + "\n  ".join(leaks)
-            + "\nMove it to an environment variable and reference it as auth = \"env:NAME\"."
+            + '\nMove it to an environment variable and reference it as auth = "env:NAME".'
             + "\nIf it was ever committed, rotate it: git history keeps it forever."
         )
 
@@ -231,9 +236,7 @@ def _build(data: dict[str, Any], source: Path) -> Suite:
 
     targets = data.get("targets")
     if not isinstance(targets, dict) or "baseline" not in targets or "candidate" not in targets:
-        raise SuiteError(
-            f"{source}: [targets.baseline] and [targets.candidate] are both required"
-        )
+        raise SuiteError(f"{source}: [targets.baseline] and [targets.candidate] are both required")
 
     baseline = _target("baseline", targets["baseline"], source)
     candidate = _target("candidate", targets["candidate"], source)
@@ -248,9 +251,14 @@ def _build(data: dict[str, Any], source: Path) -> Suite:
         allow_production=bool(policy_raw.get("allow_production", False)),
         allow_private_networks=bool(policy_raw.get("allow_private_networks", False)),
         timeout_seconds=float(policy_raw.get("timeout_seconds", 10.0)),
+        max_response_bytes=int(policy_raw.get("max_response_bytes", Policy.max_response_bytes)),
         max_retries=int(policy_raw.get("max_retries", 0)),
         workers=max(1, int(policy_raw.get("workers", 1))),
     )
+    if policy.timeout_seconds <= 0:
+        raise SuiteError(f"{source}: policy.timeout_seconds must be > 0")
+    if policy.max_response_bytes < 1:
+        raise SuiteError(f"{source}: policy.max_response_bytes must be >= 1")
     if "forbidden_host_patterns" in policy_raw:
         policy.forbidden_host_patterns = [str(p) for p in policy_raw["forbidden_host_patterns"]]
     if not policy.allowed_hosts:
@@ -271,6 +279,16 @@ def _build(data: dict[str, Any], source: Path) -> Suite:
     repeats = int(policy_raw.get("repeats", 3))
     if repeats < 1:
         raise SuiteError(f"{source}: policy.repeats must be >= 1")
+    repeat_interval_ms = int(policy_raw.get("repeat_interval_ms", 0))
+    if not 0 <= repeat_interval_ms <= 60_000:
+        raise SuiteError(f"{source}: policy.repeat_interval_ms must be between 0 and 60000")
+    max_waiver_days = int(policy_raw.get("max_waiver_days", waivers.DEFAULT_MAX_DAYS))
+    if max_waiver_days < 1:
+        raise SuiteError(f"{source}: policy.max_waiver_days must be >= 1")
+    try:
+        accepted = waivers.parse(data.get("waivers"), max_days=max_waiver_days)
+    except waivers.WaiverError as exc:
+        raise SuiteError(f"{source}: {exc}") from None
 
     return Suite(
         name=name,
@@ -285,6 +303,8 @@ def _build(data: dict[str, Any], source: Path) -> Suite:
         array_keys={str(k): str(v) for k, v in (policy_raw.get("array_keys") or {}).items()},
         ignore_array_order=bool(policy_raw.get("ignore_array_order", True)),
         float_tolerance=float(policy_raw.get("float_tolerance", 0.0)),
+        repeat_interval_ms=repeat_interval_ms,
+        waivers=accepted,
     )
 
 
@@ -316,7 +336,7 @@ def _target(name: str, raw: Any, source: Path) -> Target:
     if auth is not None:
         if not isinstance(auth, str) or not auth.startswith("env:"):
             raise SuiteError(
-                f"{source}: targets.{name}.auth must look like \"env:VARIABLE_NAME\". "
+                f'{source}: targets.{name}.auth must look like "env:VARIABLE_NAME". '
                 "Credentials are never stored in the suite itself."
             )
         auth_env = auth[4:].strip()
@@ -358,7 +378,7 @@ def _case(raw: Any, index: int, source: Path) -> Case:
             )
         if raw.get("body") is not None:
             raise SuiteError(
-                f"{where}: set either `graphql` or `body`, not both — the body is built "
+                f"{where}: set either `graphql` or `body`, not both; the body is built "
                 "from the document, the variables and the operation name"
             )
         if graphql.operation_type(str(document)) == graphql.SUBSCRIPTION:

@@ -1,0 +1,84 @@
+# What the README claims, executed on every push. If a claim is not a step in
+# here, it is not a claim the project can make.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  checks:
+    name: lint, types, repository hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install -e ".[dev]"
+
+      - name: Lint
+        run: python -m ruff check src tests
+
+      - name: Format
+        run: python -m ruff format --check src tests
+
+      - name: Types
+        run: python -m mypy src
+
+      - name: No credential-shaped strings in the repository
+        run: python -m parity_gate scan src tests suites docs README.md SECURITY.md
+
+      - name: The committed sample evidence still verifies after a checkout
+        run: python -m parity_gate verify docs/evidence
+
+      - name: The gate still catches its whole fault model, with no false alarms
+        run: python -m parity_gate selftest --demo --quiet
+
+  test:
+    name: tests (py${{ matrix.python }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: python -m pip install -e ".[dev]"
+
+      - name: Tests
+        run: python -m pytest
+
+      - name: The contract demo fails on its planted defects, with exit code 2
+        run: |
+          set +e
+          python -m parity_gate demo --mode contract --quiet --evidence "$RUNNER_TEMP/evidence"
+          code=$?
+          if [ "$code" -ne 2 ]; then
+            echo "expected exit code 2 from a gate that found breaking drift, got $code"
+            exit 1
+          fi

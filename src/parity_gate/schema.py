@@ -19,6 +19,8 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
+from parity_gate.rules import DRIFT, rule_id
+
 Segment = tuple[str, ...]
 Path = tuple[Segment, ...]
 
@@ -75,7 +77,7 @@ def parse_path(display: str) -> Path:
     A recorded contract gets committed and reviewed in pull requests, so it
     stores the readable spelling (``$.products[].price``) rather than nested
     arrays of segments. That only works if the spelling round-trips exactly,
-    which is what this does — and what ``test_schema`` pins.
+    which is what this does and what ``test_schema`` pins.
     """
     if not display.startswith("$"):
         raise ValueError(f"path must start with '$': {display!r}")
@@ -257,6 +259,7 @@ class Drift:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "rule": rule_id(DRIFT, self.kind),
             "path": self.path,
             "kind": self.kind,
             "severity": self.severity.value,
@@ -298,7 +301,7 @@ def compare(baseline: Schema, candidate: Schema) -> tuple[list[Drift], list[str]
     against, ``candidate`` is what the rewrite now returns.
 
     Returns the findings and, separately, the paths that could not be checked
-    at all because a collection was empty on one side. Those are not findings —
+    at all because a collection was empty on one side. Those are not findings,
     but they are not silence either, because a gate that quietly stops checking
     a subtree gives false confidence.
     """
@@ -407,12 +410,26 @@ def _compare_field(baseline: Schema, candidate: Schema, path: Path, rendered: st
             )
         )
     elif not removed:
+        # A new type outside the numeric family is one no existing parser of
+        # this field has seen. It usually arrives in *one* item of a page (one
+        # product's price serialised as a string), which is exactly why it
+        # shows up as a union rather than a replacement, and it breaks that
+        # consumer as surely as a full TYPE_CHANGED would. The exception is a
+        # field the baseline only ever returned as null: its type was never
+        # observed, so a first real value is worth a look, not a failed build.
+        never_typed = base_types == {"null"}
         found.append(
             Drift(
                 path=rendered,
                 kind="TYPE_WIDENED",
-                severity=Severity.RISKY,
-                detail=f"candidate returns extra types ({summary})",
+                severity=Severity.RISKY if never_typed else Severity.BREAKING,
+                detail=(
+                    f"baseline only ever returned null here, so its type was never observed "
+                    f"({summary})"
+                    if never_typed
+                    else f"candidate returns a type consumers of this field never received "
+                    f"({summary})"
+                ),
             )
         )
     elif not added:

@@ -20,7 +20,7 @@ import pytest
 
 from parity_gate.cli import EXIT_GATE_FAILED, EXIT_OK, EXIT_REFUSED, main
 from parity_gate.contracts import ContractError, save
-from parity_gate.evidence import FAIL, PASS, WARN, verify
+from parity_gate.evidence import ERROR, FAIL, PASS, WARN, verify
 from parity_gate.mock import MockServer, start
 from parity_gate.runner import Runner
 from parity_gate.safety import SafetyError
@@ -187,6 +187,32 @@ def test_no_credential_reaches_the_evidence(suite_file: Path, monkeypatch) -> No
     assert "[REDACTED]" in serialised
 
 
+def test_a_defect_in_the_tool_fails_its_case_and_spares_the_others(
+    suite_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An exception escaping a worker used to end the run with a traceback and
+    no evidence at all, discarding every case that had already finished."""
+    import parity_gate.runner as runner_module
+
+    real_diff = runner_module.diff
+
+    def explode(baseline, candidate, options):  # type: ignore[no-untyped-def]
+        if isinstance(baseline, dict) and "products" in baseline:
+            raise RuntimeError("synthetic defect")
+        return real_diff(baseline, candidate, options)
+
+    monkeypatch.setattr(runner_module, "diff", explode)
+    run = Runner(load(suite_file)).execute()
+    found = {record.case["id"]: record for record in run.records}
+
+    assert len(found) == 6
+    assert found["CAT-001"].verdict == ERROR
+    assert "RuntimeError" in (found["CAT-001"].error or "")
+    assert "defect in the tool" in (found["CAT-001"].error or "")
+    assert found["CAT-002"].verdict == PASS
+    assert run.verdict == ERROR
+
+
 def test_the_cli_writes_a_bundle_that_verifies(suite_file: Path, tmp_path: Path) -> None:
     out = tmp_path / "evidence"
     code = main(["run", "--suite", str(suite_file), "--evidence", str(out), "--quiet"])
@@ -199,15 +225,14 @@ def test_the_cli_writes_a_bundle_that_verifies(suite_file: Path, tmp_path: Path)
         "run.json",
         "report.md",
         "report.html",
+        "report.sarif",
         "manifest.json",
     }
     assert verify(bundle) == []
     assert main(["verify", str(bundle)]) == EXIT_OK
 
 
-def test_the_cli_refuses_a_host_the_policy_does_not_cover(
-    suite_file: Path, tmp_path: Path
-) -> None:
+def test_the_cli_refuses_a_host_the_policy_does_not_cover(suite_file: Path, tmp_path: Path) -> None:
     body = suite_file.read_text(encoding="utf-8").replace(
         'allowed_hosts = ["127.0.0.1"]', 'allowed_hosts = ["api.example.com"]'
     )
@@ -301,8 +326,10 @@ def test_the_recorded_status_catches_a_404_that_became_a_200(
     The status an endpoint answers with is part of what gets recorded, so the
     softened error is caught on a case nobody thought to assert on.
     """
-    save(Runner(load(_contract_suite(tmp_path, mock, "legacy"))).record_contract(),
-         tmp_path / "recorded.json")
+    save(
+        Runner(load(_contract_suite(tmp_path, mock, "legacy"))).record_contract(),
+        tmp_path / "recorded.json",
+    )
     gate = Runner(load(_contract_suite(tmp_path, mock, "next"))).execute()
     record = {r.case["id"]: r for r in gate.records}["CAT-003"]
 
@@ -412,7 +439,7 @@ def test_a_status_divergence_fails_without_anyone_having_predicted_it(
     """The false PASS the review found.
 
     Baseline answers 404, candidate answers 200. No `expect_status` is written
-    anywhere in STATUS_SUITE — predicting the change is exactly what the tool
+    anywhere in STATUS_SUITE; predicting the change is exactly what the tool
     is supposed to make unnecessary.
     """
     target = tmp_path / "status.toml"
@@ -430,8 +457,10 @@ def test_parallel_and_sequential_runs_produce_the_same_report(
     suite_file: Path, tmp_path: Path
 ) -> None:
     """A gate whose output depends on scheduling cannot be diffed between runs."""
-    sequential = {r.case["id"]: (r.verdict, r.drifts, r.differences)
-                  for r in Runner(load(suite_file)).execute().records}
+    sequential = {
+        r.case["id"]: (r.verdict, r.drifts, r.differences)
+        for r in Runner(load(suite_file)).execute().records
+    }
 
     body = suite_file.read_text(encoding="utf-8").replace("[policy]", "[policy]\nworkers = 4", 1)
     suite_file.write_text(body, encoding="utf-8")
@@ -566,9 +595,7 @@ graphql = "query Products {{ products {{ id title price stock }} }}"
 """
 
 
-def test_a_graphql_query_runs_without_the_mutation_gate(
-    tmp_path: Path, mock: MockServer
-) -> None:
+def test_a_graphql_query_runs_without_the_mutation_gate(tmp_path: Path, mock: MockServer) -> None:
     """Every GraphQL operation is a POST. If the write gate went by method,
     this run would be refused and every query would have to lie about being a
     mutation."""
@@ -612,11 +639,9 @@ def test_drift_is_reported_under_data_and_errors_are_not_duplicated(
     assert not any(path.startswith("$.errors") for path in drifts)
 
 
-def test_a_graphql_mutation_still_needs_both_switches(
-    tmp_path: Path, mock: MockServer
-) -> None:
+def test_a_graphql_mutation_still_needs_both_switches(tmp_path: Path, mock: MockServer) -> None:
     body = GQL_SUITE.format(base=mock.base_url).replace(
-        "graphql = \"query Products { products { id title price stock } }\"",
+        'graphql = "query Products { products { id title price stock } }"',
         'graphql = "mutation { createOrder { id status } }"',
     )
     target = tmp_path / "mut.toml"

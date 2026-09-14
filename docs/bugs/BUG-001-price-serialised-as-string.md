@@ -1,9 +1,9 @@
-# BUG-001 — `price` is returned as a string by the rewritten catalogue
+# BUG-001: `price` is returned as a string by the rewritten catalogue
 
 | | |
 | --- | --- |
 | **Severity** | Critical |
-| **Priority** | P1 — blocks the migration |
+| **Priority** | P1, blocks the migration |
 | **Requirement** | REQ-CAT-01 (product listing keeps its item contract) |
 | **Found by** | `parity-gate` case `CAT-001`, contract-drift check |
 | **Environment** | candidate `/next` vs baseline `/legacy`, demo catalogue build |
@@ -55,7 +55,7 @@ presentation concern; the API contract is a data concern.
 ## Suggested fix
 
 Return the numeric value and let each consumer format it. If a fixed-precision
-representation is genuinely required — and for money it often is — it belongs in
+representation is genuinely required (and for money it often is), it belongs in
 a new, additive field (`priceFormatted`) alongside the numeric one, with the
 change versioned and announced, not substituted in place.
 

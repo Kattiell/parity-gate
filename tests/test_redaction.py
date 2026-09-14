@@ -82,10 +82,10 @@ def test_find_secrets_ignores_personal_data() -> None:
 @pytest.mark.parametrize(
     "legitimate",
     [
-        "7891234567890",            # EAN-13 barcode
-        "5534991234567",            # Brazilian phone with country code
-        "1757650331123456789",      # nanosecond timestamp
-        "12345678000199",           # CNPJ without punctuation
+        "7891234567890",  # EAN-13 barcode
+        "5534991234567",  # Brazilian phone with country code
+        "1757650331123456789",  # nanosecond timestamp
+        "12345678000199",  # CNPJ without punctuation
     ],
 )
 def test_long_digit_runs_that_are_not_cards_survive(legitimate: str) -> None:
@@ -111,7 +111,7 @@ def test_luhn_is_what_decides() -> None:
 
     assert luhn("4111111111111111")
     assert not luhn("4111111111111112")
-    assert not luhn("123")            # too short to be a card at all
+    assert not luhn("123")  # too short to be a card at all
 
 
 def test_english_prose_about_tokens_is_not_a_finding() -> None:
@@ -136,7 +136,7 @@ def test_an_empty_value_under_a_sensitive_key_is_left_visible() -> None:
     """Masking null protects nothing and hides whether anything was sent.
 
     Found end to end: the mock echoes the Authorization header it received, and
-    the side that sent no credential reported "[REDACTED]" for a null — which
+    the side that sent no credential reported "[REDACTED]" for a null, which
     made the evidence say the opposite of what happened.
     """
     assert redact({"authorization": None})["authorization"] is None

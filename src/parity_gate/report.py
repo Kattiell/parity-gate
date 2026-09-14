@@ -66,15 +66,13 @@ def render_markdown(run: Run) -> str:
         )
     add("")
 
-    actionable = [
-        r for r in run.records if r.verdict in {FAIL, ERROR, WARN} or r.unchecked_paths
-    ]
+    actionable = [r for r in run.records if r.verdict in {FAIL, ERROR, WARN} or r.unchecked_paths]
     if actionable:
         add("## Findings")
         add("")
     for record in actionable:
         case = record.case
-        add(f"### {VERDICT_ICON.get(record.verdict)} `{case['id']}` — {case['title']}")
+        add(f"### {VERDICT_ICON.get(record.verdict)} `{case['id']}`: {case['title']}")
         add("")
         add(
             f"`{case['method']} {case['path']}` "
@@ -92,7 +90,7 @@ def render_markdown(run: Run) -> str:
             add("**Failed assertions**")
             add("")
             for check in failed:
-                add(f"- `{check['name']}`: {check['detail']}")
+                add(f"- `{_rule(check)}{check['name']}`: {check['detail']}{_waiver_note(check)}")
             add("")
 
         if record.drifts:
@@ -102,8 +100,8 @@ def render_markdown(run: Run) -> str:
             add("| --- | --- | --- | --- |")
             for drift in sorted(record.drifts, key=lambda d: SEVERITY_ORDER.get(d["severity"], 9)):
                 add(
-                    f"| {drift['severity']} | `{drift['kind']}` | `{drift['path']}` "
-                    f"| {drift['detail']} |"
+                    f"| {drift['severity']} | `{_rule(drift)}{drift['kind']}` | `{drift['path']}` "
+                    f"| {drift['detail']}{_waiver_note(drift)} |"
                 )
             add("")
 
@@ -114,8 +112,9 @@ def render_markdown(run: Run) -> str:
             add("| --- | --- | --- | --- |")
             for difference in record.differences[:25]:
                 add(
-                    f"| `{difference['kind']}` | `{difference['path']}` "
-                    f"| `{_short(difference['baseline'])}` | `{_short(difference['candidate'])}` |"
+                    f"| `{_rule(difference)}{difference['kind']}` | `{difference['path']}` "
+                    f"| `{_short(difference['baseline'])}` "
+                    f"| `{_short(difference['candidate'])}`{_waiver_note(difference)} |"
                 )
             if len(record.differences) > 25:
                 add(f"| ... | _{len(record.differences) - 25} more_ | | |")
@@ -129,7 +128,7 @@ def render_markdown(run: Run) -> str:
 
         if record.unchecked_paths:
             add(
-                f"**Not checked** — {len(record.unchecked_paths)} path(s) could not be "
+                f"**Not checked:** {len(record.unchecked_paths)} path(s) could not be "
                 "compared because a collection was empty in every sample. Nothing is wrong "
                 "with them; nothing is confirmed about them either."
             )
@@ -143,7 +142,7 @@ def render_markdown(run: Run) -> str:
         for label, stability in _stability_blocks(record):
             add(
                 f"**Stability ({label})**: `{stability['verdict']}` over "
-                f"{stability['repeats']} calls — {stability['detail']}"
+                f"{stability['repeats']} calls: {stability['detail']}"
             )
             add("")
             if stability.get("volatile_paths"):
@@ -156,6 +155,9 @@ def render_markdown(run: Run) -> str:
                 add("]")
                 add("```")
                 add("")
+
+    if run.waivers:
+        lines.extend(_waiver_section(run.waivers))
 
     add("## Traceability")
     add("")
@@ -191,10 +193,10 @@ def render_html(run: Run) -> str:
         rows.append(
             f"""<tr class="v-{record.verdict.lower()}">
   <td><span class="badge {record.verdict.lower()}">{record.verdict}</span></td>
-  <td><code>{_e(case['id'])}</code><div class="muted">{_e(case['title'])}</div></td>
-  <td>{_e(case.get('requirement') or '—')}</td>
-  <td>{_e(case.get('risk'))}</td>
-  <td>{len(record.drifts)}{f' <b>({breaking} breaking)</b>' if breaking else ''}</td>
+  <td><code>{_e(case["id"])}</code><div class="muted">{_e(case["title"])}</div></td>
+  <td>{_e(case.get("requirement") or "-")}</td>
+  <td>{_e(case.get("risk"))}</td>
+  <td>{len(record.drifts)}{f" <b>({breaking} breaking)</b>" if breaking else ""}</td>
   <td>{len(record.differences)}</td>
   <td>{_e(stability)}</td>
 </tr>
@@ -203,7 +205,7 @@ def render_html(run: Run) -> str:
 
     verdict = summary["verdict"]
     return _HTML_TEMPLATE.format(
-        title=_e(f"parity-gate — {run.suite_name}"),
+        title=_e(f"parity-gate: {run.suite_name}"),
         suite=_e(run.suite_name),
         verdict=_e(verdict),
         verdict_class=verdict.lower(),
@@ -218,6 +220,7 @@ def render_html(run: Run) -> str:
         chain=_e(data["chain_head"][:16]),
         rows="\n".join(rows),
         matrix=_html_matrix(run),
+        waivers=_html_waivers(run),
     )
 
 
@@ -230,19 +233,21 @@ def _html_details(record: Any) -> str:
     failed = [c for c in record.checks if not c["passed"]]
     if failed:
         items = "".join(
-            f"<li><code>{_e(c['name'])}</code> &mdash; {_e(c['detail'])}</li>" for c in failed
+            f"<li><code>{_e(_rule(c))}{_e(c['name'])}</code>: {_e(c['detail'])}"
+            f"{_waiver_html(c)}</li>"
+            for c in failed
         )
         blocks.append(f"<h4>Failed assertions</h4><ul>{items}</ul>")
 
     if record.drifts:
         body = "".join(
-            f"<tr><td><span class=\"sev {_e(d['severity'])}\">{_e(d['severity'])}</span></td>"
-            f"<td><code>{_e(d['kind'])}</code></td><td><code>{_e(d['path'])}</code></td>"
-            f"<td>{_e(d['detail'])}</td></tr>"
+            f'<tr><td><span class="sev {_e(d["severity"])}">{_e(d["severity"])}</span></td>'
+            f"<td><code>{_e(_rule(d))}{_e(d['kind'])}</code></td><td><code>{_e(d['path'])}</code></td>"
+            f"<td>{_e(d['detail'])}{_waiver_html(d)}</td></tr>"
             for d in sorted(record.drifts, key=lambda d: SEVERITY_ORDER.get(d["severity"], 9))
         )
         blocks.append(
-            "<h4>Contract drift</h4><table class=\"inner\"><thead><tr>"
+            '<h4>Contract drift</h4><table class="inner"><thead><tr>'
             "<th>Severity</th><th>Kind</th><th>Path</th><th>Detail</th>"
             f"</tr></thead><tbody>{body}</tbody></table>"
         )
@@ -251,9 +256,9 @@ def _html_details(record: Any) -> str:
         table = ""
         if record.differences:
             body = "".join(
-                f"<tr><td><code>{_e(d['kind'])}</code></td><td><code>{_e(d['path'])}</code></td>"
+                f"<tr><td><code>{_e(_rule(d))}{_e(d['kind'])}</code></td><td><code>{_e(d['path'])}</code></td>"
                 f"<td><code>{_e(_short(d['baseline']))}</code></td>"
-                f"<td><code>{_e(_short(d['candidate']))}</code></td></tr>"
+                f"<td><code>{_e(_short(d['candidate']))}</code>{_waiver_html(d)}</td></tr>"
                 for d in record.differences[:25]
             )
             table = (
@@ -277,7 +282,7 @@ def _html_details(record: Any) -> str:
             else ""
         )
         blocks.append(
-            "<h4>Not checked</h4><p class=\"muted\">A collection was empty in every sample, "
+            '<h4>Not checked</h4><p class="muted">A collection was empty in every sample, '
             "so nothing could be learned about these paths. Not a finding, not a "
             f"confirmation.</p><ul>{items}{extra}</ul>"
         )
@@ -288,7 +293,7 @@ def _html_details(record: Any) -> str:
             listed = ",\n  ".join(f'"{_e(p)}"' for p in stability["volatile_paths"][:12])
             suggestion = f"<pre>mask_paths = [\n  {listed}\n]</pre>"
         blocks.append(
-            f"<h4>Stability &mdash; {_e(label)}</h4><p><code>{_e(stability['verdict'])}</code>"
+            f"<h4>Stability, {_e(label)}</h4><p><code>{_e(stability['verdict'])}</code>"
             f" over {stability['repeats']} calls: {_e(stability['detail'])}</p>{suggestion}"
         )
 
@@ -322,14 +327,100 @@ def _html_matrix(run: Run) -> str:
         worst = max(entries, key=lambda e: _rank(e["verdict"]))["verdict"]
         cases = ", ".join(f"<code>{_e(e['case'])}</code>" for e in entries)
         rows.append(
-            f'<tr><td>{_e(requirement)}</td><td>{cases}</td>'
+            f"<tr><td>{_e(requirement)}</td><td>{cases}</td>"
             f'<td><span class="badge {worst.lower()}">{_e(worst)}</span></td></tr>'
         )
     return "\n".join(rows)
 
 
+def _html_waivers(run: Run) -> str:
+    if not run.waivers:
+        return ""
+    rows = []
+    for status in ("expired", "applied", "unused"):
+        for w in run.waivers.get(status, []):
+            cells = [
+                status,
+                w["rule"],
+                w["case"],
+                w["path"],
+                w["owner"],
+                w["expires"],
+                w.get("ticket") or "-",
+                w["findings"],
+                w["reason"],
+            ]
+            rows.append("<tr>" + "".join(f"<td>{_e(c)}</td>" for c in cells) + "</tr>")
+    head = "".join(
+        f"<th>{h}</th>"
+        for h in (
+            "Status",
+            "Rule",
+            "Case",
+            "Path",
+            "Owner",
+            "Expires",
+            "Ticket",
+            "Findings",
+            "Reason",
+        )
+    )
+    return (
+        '<h2>Waivers</h2><div class="scroll"><table><thead><tr>'
+        f"{head}</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+    )
+
+
 def _rank(verdict: str) -> int:
     return {PASS: 0, SKIPPED: 1, WARN: 2, FAIL: 3, ERROR: 4}.get(verdict, 0)
+
+
+def _waiver_text(finding: dict[str, Any]) -> str:
+    """How a waiver bears on one finding, in a phrase a ticket reader can act on."""
+    if finding.get("waiver"):
+        w = finding["waiver"]
+        return f"waived until {w['expires']}, owner {w['owner']}"
+    if finding.get("waiver_expired"):
+        w = finding["waiver_expired"]
+        return f"waiver expired {w['expires']}, owner {w['owner']}"
+    return ""
+
+
+def _waiver_note(finding: dict[str, Any]) -> str:
+    text = _waiver_text(finding)
+    if not text:
+        return ""
+    return f" **({text})**" if finding.get("waiver_expired") else f" _({text})_"
+
+
+def _waiver_html(finding: dict[str, Any]) -> str:
+    text = _waiver_text(finding)
+    return f' <span class="muted">({_e(text)})</span>' if text else ""
+
+
+def _waiver_section(summary: dict[str, Any]) -> list[str]:
+    out = ["## Waivers", ""]
+    out.append(
+        f"Judged on {summary.get('judged_on')}. An applied waiver keeps its findings in "
+        "this report and turns their failure into a warning; an expired one waives "
+        "nothing; an unused one matched no finding and can be deleted."
+    )
+    out.append("")
+    out.append("| Status | Rule | Case | Path | Owner | Expires | Ticket | Findings | Reason |")
+    out.append("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+    for status in ("expired", "applied", "unused"):
+        for w in summary.get(status, []):
+            out.append(
+                f"| {status} | {w['rule']} | `{w['case']}` | `{w['path']}` | {w['owner']} "
+                f"| {w['expires']} | {w.get('ticket') or '-'} | {w['findings']} | {w['reason']} |"
+            )
+    out.append("")
+    return out
+
+
+def _rule(finding: dict[str, Any]) -> str:
+    """``PG1004 `` for a finding that carries a rule id, nothing for one that does not."""
+    return f"{finding['rule']} " if finding.get("rule") else ""
 
 
 def _short(value: Any, limit: int = 80) -> str:
@@ -440,6 +531,8 @@ footer {{ margin-top: 40px; font-size: 12px; color: var(--muted); }}
 <tbody>
 {matrix}
 </tbody></table></div>
+
+{waivers}
 
 <footer>Generated by parity-gate. Records are hash-chained; run
 <code>parity-gate verify</code> against the evidence directory to confirm this

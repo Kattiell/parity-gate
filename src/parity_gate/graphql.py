@@ -5,14 +5,14 @@ it unchanged. What does not carry over is everything the tool infers from the
 *method* and the *status code*:
 
 **Every operation is a POST.** Reads and writes look identical from outside, so
-the write gate — which refuses a POST unless the case declares ``mutating`` and
-the run passes ``--allow-mutations`` — would force every read to be declared a
+the write gate (which refuses a POST unless the case declares ``mutating`` and
+the run passes ``--allow-mutations``) would force every read to be declared a
 write, and a safety control that everyone has to switch off protects nothing.
 The operation type is in the query text, so it is read from there.
 
 **Every response is 200**, including the failures. A GraphQL server reports
-errors in the body, so ``recorded_status`` — the check that catches a 404
-softened into a 200 — has nothing to work with. The equivalent signal is the
+errors in the body, so ``recorded_status`` (the check that catches a 404
+softened into a 200) has nothing to work with. The equivalent signal is the
 ``errors`` array: a query that used to return none and now returns one is the
 same class of regression, and it is invisible to every status-based check.
 """
@@ -34,7 +34,7 @@ SUBSCRIPTION = "subscription"
 def operation_type(document: str) -> str:
     """Whether a GraphQL document reads, writes, or subscribes.
 
-    An anonymous document — one that starts with ``{`` — is shorthand for a
+    An anonymous document, one that starts with ``{``, is shorthand for a
     query, which is the form most examples use and the one most likely to be
     pasted into a suite.
     """

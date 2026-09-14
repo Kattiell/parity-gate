@@ -1,11 +1,12 @@
 {
-  "run_id": "20260912T220414Z-bd26c7",
-  "generated_at": "2026-09-12T22:04:15Z",
+  "run_id": "20260914T023330Z-706fb7",
+  "generated_at": "2026-09-14T02:33:30Z",
   "tool_version": "0.1.0",
-  "chain_head": "64d522b982d93735b981d050f3eeba9e211637724a46467d4c78d61fa6932056",
+  "chain_head": "c58ec76b96e7449b95857f901409c22d4f66827394cd35cb64cbca7e88065615",
   "files": {
-    "run.json": "be9f7cf7cdd2e7cf0f9fb69ebc2778eed33c91cd8f32e8cdc702131c52647799",
-    "report.md": "33a9080fca6db7444c38dc01a0e4d54d1fe3b74a2d99cb4726800e2d409fe508",
-    "report.html": "1630aaa48bda7a3c5a80595eb1cc6053d2e022f8ccc9611679f56e722a41f829"
+    "run.json": "c51231d7c212e27f6995947274db4e7c8520d60ae63f920a77f33ce8d427f8fe",
+    "report.md": "0fe7b65052840f4fc2819ae35ba3970635cdc65bd64ec0def27b88b7db636984",
+    "report.html": "782830524834c83bfc51f67c549ac347102b9591a355f46c7cbfc3ad1daa35e7",
+    "report.sarif": "6de6debb50ae3a7cdb0f9d2700b6a736343d2b81b7e16296544273b579e5e31d"
   }
 }

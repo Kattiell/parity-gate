@@ -7,14 +7,14 @@ that was legitimately used to make a request never survives into the report.
 
 The rules match **known shapes**: sensitive header and key names at any depth,
 and token formats with a recognisable prefix. That boundary is real and worth
-stating plainly — a bare 32-character API key, an AWS *secret* access key or an
+stating plainly: a bare 32-character API key, an AWS *secret* access key or an
 opaque session id carries no marker, and nothing here will catch it when it
 appears as a naked value under an innocuous key. Put credentials behind the key
 names in :data:`SENSITIVE_KEYS`, or review evidence before publishing it.
 
 Two failure directions, weighted differently: a missed secret costs a
 credential rotation, so prefixed shapes are matched aggressively. A false
-positive costs a reader an unreadable field — which is why the one rule that
+positive costs a reader an unreadable field, which is why the one rule that
 cannot be anchored to a prefix, card numbers, is gated behind a Luhn check
 rather than matching every long run of digits.
 
@@ -79,7 +79,7 @@ _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     # The value has to look like a credential, not merely follow the word.
     # Matching anything 8 characters long after "Token" flagged the English
     # sentence "a token supplied through the environment" in this project's own
-    # README — and a scanner that flags its own documentation earns a blanket
+    # README, and a scanner that flags its own documentation earns a blanket
     # exclusion, after which it stops scanning the code that matters. A digit,
     # or a long unbroken run of letters, is the cheap discriminator.
     (
@@ -139,8 +139,8 @@ def _mask_if_card(match: re.Match[str]) -> str:
 
     Every payment card number satisfies Luhn; almost nothing else does, so this
     is the cheap test that separates a real PAN from a barcode, an order id or
-    a timestamp. It is not proof — roughly one in ten random digit strings
-    passes by chance — but it turns a rule that destroyed legitimate data into
+    a timestamp. It is not proof (roughly one in ten random digit strings
+    passes by chance), but it turns a rule that destroyed legitimate data into
     one that rarely does, at no cost to the numbers actually worth hiding.
     """
     raw = match.group(0)

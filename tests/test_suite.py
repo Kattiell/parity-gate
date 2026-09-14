@@ -123,10 +123,13 @@ def test_a_present_credential_is_sent_as_a_bearer_token(
 
 
 def test_case_masks_extend_rather_than_replace_suite_masks(tmp_path: Path) -> None:
-    body = MINIMAL.replace(
-        'allowed_hosts = ["127.0.0.1"]',
-        'allowed_hosts = ["127.0.0.1"]\nmask_paths = ["$.a"]',
-    ) + 'mask_paths = ["$.b"]\n'
+    body = (
+        MINIMAL.replace(
+            'allowed_hosts = ["127.0.0.1"]',
+            'allowed_hosts = ["127.0.0.1"]\nmask_paths = ["$.a"]',
+        )
+        + 'mask_paths = ["$.b"]\n'
+    )
     suite = load(write(tmp_path, body))
     assert suite.diff_options(suite.cases[0]).mask_paths == ["$.a", "$.b"]
 
@@ -228,7 +231,9 @@ def test_workers_default_to_one_and_cannot_be_zero(tmp_path: Path) -> None:
 
 
 def test_a_filter_matches_by_id_requirement_or_title(tmp_path: Path) -> None:
-    body = MINIMAL + """
+    body = (
+        MINIMAL
+        + """
 [[cases]]
 id = "B-2"
 requirement = "REQ-ORDERS"
@@ -236,14 +241,36 @@ title = "Orders listing"
 method = "GET"
 path = "/orders"
 """
+    )
     suite = load(write(tmp_path, body))
-    assert [c.id for c in suite.select([])] == ["A-1", "B-2"]          # no filter: everything
-    assert [c.id for c in suite.select(["B-*"])] == ["B-2"]            # glob on the id
-    assert [c.id for c in suite.select(["REQ-ORDERS"])] == ["B-2"]     # the requirement
-    assert [c.id for c in suite.select(["orders"])] == ["B-2"]         # substring of the title
+    assert [c.id for c in suite.select([])] == ["A-1", "B-2"]  # no filter: everything
+    assert [c.id for c in suite.select(["B-*"])] == ["B-2"]  # glob on the id
+    assert [c.id for c in suite.select(["REQ-ORDERS"])] == ["B-2"]  # the requirement
+    assert [c.id for c in suite.select(["orders"])] == ["B-2"]  # substring of the title
     assert suite.select(["nothing-like-this"]) == []
 
 
 def test_a_case_matching_two_patterns_is_not_run_twice(tmp_path: Path) -> None:
     suite = load(write(tmp_path, MINIMAL))
     assert [c.id for c in suite.select(["A-*", "A-1"])] == ["A-1"]
+
+
+def test_response_bounds_default_to_a_deadline_and_a_size_cap(tmp_path: Path) -> None:
+    suite = load(write(tmp_path, MINIMAL))
+    assert suite.policy.timeout_seconds == 10.0
+    assert suite.policy.max_response_bytes == 10 * 1024 * 1024
+
+
+@pytest.mark.parametrize(
+    ("setting", "message"),
+    [
+        ("timeout_seconds = 0", "timeout_seconds must be > 0"),
+        ("max_response_bytes = 0", "max_response_bytes must be >= 1"),
+    ],
+)
+def test_response_bounds_that_would_disable_themselves_are_rejected(
+    tmp_path: Path, setting: str, message: str
+) -> None:
+    body = MINIMAL.replace("[policy]", f"[policy]\n{setting}", 1)
+    with pytest.raises(SuiteError, match=message):
+        load(write(tmp_path, body))

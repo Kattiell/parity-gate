@@ -9,14 +9,16 @@ prove they are stripped, never live credentials.
 from __future__ import annotations
 
 import json
+import sys
 import threading
+import time
 from collections.abc import Iterator
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 import pytest
 
-from parity_gate.httpclient import MAX_REDIRECTS, Client
+from parity_gate.httpclient import MAX_JSON_DEPTH, MAX_REDIRECTS, Client
 from parity_gate.safety import Policy, SafetyError
 
 
@@ -37,6 +39,12 @@ class _Server(ThreadingHTTPServer):
         with self.lock:
             self.connections += 1
         super().process_request(request, client_address)
+
+    def handle_error(self, request, client_address):  # type: ignore[no-untyped-def]
+        # A client that hangs up mid-body is what the size and deadline tests
+        # provoke on purpose; anything else is still printed.
+        if not isinstance(sys.exc_info()[1], ConnectionError):
+            super().handle_error(request, client_address)
 
     @property
     def url(self) -> str:
@@ -67,16 +75,33 @@ class _Handler(BaseHTTPRequestHandler):
         status = route.get("status", 200)
         headers = route.get("headers", {})
         body = route.get("body")
-        raw = b"" if body is None else json.dumps(body).encode()
+        raw = route.get("raw")
+        if raw is None:
+            raw = b"" if body is None else json.dumps(body).encode()
 
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(raw)))
+        if route.get("undeclared_length"):
+            # No Content-Length: the body ends when the connection does.
+            self.send_header("Connection", "close")
+            self.close_connection = True
+        else:
+            self.send_header("Content-Length", str(len(raw)))
         for name, value in headers.items():
             self.send_header(name, value)
         self.end_headers()
-        if raw:
-            self.wfile.write(raw)
+        if not raw:
+            return
+        try:
+            if route.get("trickle_seconds"):
+                for byte in raw:
+                    self.wfile.write(bytes([byte]))
+                    self.wfile.flush()
+                    time.sleep(route["trickle_seconds"])
+            else:
+                self.wfile.write(raw)
+        except OSError:
+            return  # the client gave up on us, which is what some tests want
 
     do_GET = do_POST = do_DELETE = _handle
 
@@ -314,3 +339,112 @@ def test_a_query_string_reaches_the_server_intact(server: _Server) -> None:
     finally:
         connection.close()
     assert server.requests[0]["path"] == "/search?q=phone&limit=5"
+
+
+# -- a misbehaving service must not take the gate down with it ----------------
+
+
+def test_a_trickled_body_hits_the_deadline_instead_of_holding_the_run_open(
+    server: _Server,
+) -> None:
+    """A read timeout alone is reset by every byte. At one byte per 50 ms a
+    one-second timeout never fires, and this exchange would take four seconds;
+    a slower trickle would take as long as the server liked."""
+    server.routes["/slow"] = {"raw": b'{"padding": "' + b"x" * 64 + b'"}', "trickle_seconds": 0.05}
+    connection = client(timeout_seconds=1.0)
+    started = time.monotonic()
+    try:
+        response = connection.request("GET", f"{server.url}/slow")
+    finally:
+        connection.close()
+
+    assert time.monotonic() - started < 2.5
+    assert response.status is None
+    assert "DeadlineExceeded" in (response.transport_error or "")
+
+
+def test_a_body_that_declares_itself_too_large_is_refused_before_it_is_read(
+    server: _Server,
+) -> None:
+    server.routes["/export"] = {"raw": b"[" + b"1," * 600 + b"1]"}
+    connection = client(max_response_bytes=500)
+    try:
+        response = connection.request("GET", f"{server.url}/export")
+    finally:
+        connection.close()
+
+    assert response.json_body is None
+    assert "ResponseTooLarge" in (response.transport_error or "")
+    assert "declares" in (response.transport_error or "")
+
+
+def test_a_body_without_a_declared_length_is_cut_off_at_the_cap(server: _Server) -> None:
+    server.routes["/stream"] = {"raw": b"[" + b"1," * 600 + b"1]", "undeclared_length": True}
+    connection = client(max_response_bytes=500)
+    try:
+        response = connection.request("GET", f"{server.url}/stream")
+    finally:
+        connection.close()
+
+    assert "exceeded max_response_bytes" in (response.transport_error or "")
+
+
+def test_an_oversized_body_on_a_pooled_connection_is_not_retried(server: _Server) -> None:
+    """The stale-socket retry exists for connections the peer closed. A body
+    that is simply too big would be exactly as big the second time."""
+    server.routes["/export"] = {"raw": b"[" + b"1," * 600 + b"1]"}
+    connection = client(max_response_bytes=500)
+    try:
+        connection.request("GET", f"{server.url}/thing")  # pools the connection
+        connection.request("GET", f"{server.url}/export")
+    finally:
+        connection.close()
+
+    assert [r["path"] for r in server.requests] == ["/thing", "/export"]
+
+
+def test_a_body_below_the_cap_still_comes_back_whole(server: _Server) -> None:
+    payload = {"items": list(range(200))}
+    server.routes["/list"] = {"body": payload}
+    connection = client(max_response_bytes=len(json.dumps(payload)))
+    try:
+        response = connection.request("GET", f"{server.url}/list")
+    finally:
+        connection.close()
+
+    assert response.transport_error is None
+    assert response.json_body == payload
+
+
+def test_json_nested_past_what_the_parser_survives_is_a_finding_not_a_crash(
+    server: _Server,
+) -> None:
+    """Five thousand levels make `json.loads` raise RecursionError, which used
+    to escape the worker thread and end the run without writing evidence."""
+    server.routes["/deep"] = {"raw": b"[" * 5000 + b"]" * 5000}
+    connection = client()
+    try:
+        response = connection.request("GET", f"{server.url}/deep")
+    finally:
+        connection.close()
+
+    assert response.status == 200
+    assert response.json_body is None
+    assert "nested" in (response.json_error or "")
+
+
+def test_json_nesting_is_accepted_up_to_the_limit_and_refused_past_it(server: _Server) -> None:
+    server.routes["/at-limit"] = {"raw": b"[" * MAX_JSON_DEPTH + b"]" * MAX_JSON_DEPTH}
+    server.routes["/past-limit"] = {
+        "raw": b"[" * (MAX_JSON_DEPTH + 1) + b"]" * (MAX_JSON_DEPTH + 1)
+    }
+    connection = client()
+    try:
+        at_limit = connection.request("GET", f"{server.url}/at-limit")
+        past_limit = connection.request("GET", f"{server.url}/past-limit")
+    finally:
+        connection.close()
+
+    assert at_limit.json_error is None and at_limit.json_body is not None
+    assert past_limit.json_body is None
+    assert f"more than {MAX_JSON_DEPTH} levels" in (past_limit.json_error or "")

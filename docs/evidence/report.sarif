@@ -1,0 +1,1455 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "parity-gate",
+          "semanticVersion": "0.1.0",
+          "informationUri": "https://github.com/Kattiell/parity-gate",
+          "rules": [
+            {
+              "id": "PG1001",
+              "name": "FIELD_REMOVED",
+              "shortDescription": {
+                "text": "A field present in the baseline is absent from the candidate."
+              },
+              "fullDescription": {
+                "text": "Consumers that read the field get undefined or crash; if it was always present, typed clients fail to deserialise."
+              },
+              "help": {
+                "text": "Consumers that read the field get undefined or crash; if it was always present, typed clients fail to deserialise."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1001",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "family": "drift"
+              }
+            },
+            {
+              "id": "PG1002",
+              "name": "FIELD_NOW_OPTIONAL",
+              "shortDescription": {
+                "text": "A field that was always present is sometimes missing."
+              },
+              "fullDescription": {
+                "text": "Clients written without a null check for it fail on the responses that omit it."
+              },
+              "help": {
+                "text": "Clients written without a null check for it fail on the responses that omit it."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1002",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "family": "drift"
+              }
+            },
+            {
+              "id": "PG1003",
+              "name": "NULLABLE_ADDED",
+              "shortDescription": {
+                "text": "A field can now be null where it never was."
+              },
+              "fullDescription": {
+                "text": "Null-pointer failures in typed clients and 'null' rendered in UIs."
+              },
+              "help": {
+                "text": "Null-pointer failures in typed clients and 'null' rendered in UIs."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1003",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "family": "drift"
+              }
+            },
+            {
+              "id": "PG1004",
+              "name": "TYPE_CHANGED",
+              "shortDescription": {
+                "text": "A field's type was replaced by an incompatible one."
+              },
+              "fullDescription": {
+                "text": "Parsers reject the payload or silently mis-read it (money as a string is the classic)."
+              },
+              "help": {
+                "text": "Parsers reject the payload or silently mis-read it (money as a string is the classic)."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1004",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "family": "drift"
+              }
+            },
+            {
+              "id": "PG1005",
+              "name": "TYPE_WIDENED",
+              "shortDescription": {
+                "text": "A field can now carry a type it did not before."
+              },
+              "fullDescription": {
+                "text": "Safe within the numeric family; any other new type is one existing parsers never saw."
+              },
+              "help": {
+                "text": "Safe within the numeric family; any other new type is one existing parsers never saw."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1005",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "family": "drift"
+              }
+            },
+            {
+              "id": "PG1006",
+              "name": "TYPE_NARROWED",
+              "shortDescription": {
+                "text": "A field stopped carrying one of the types it used to."
+              },
+              "fullDescription": {
+                "text": "Usually harmless; code paths that handled the dropped type go dead."
+              },
+              "help": {
+                "text": "Usually harmless; code paths that handled the dropped type go dead."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1006",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "family": "drift"
+              }
+            },
+            {
+              "id": "PG1007",
+              "name": "FIELD_ADDED",
+              "shortDescription": {
+                "text": "A field is new in the candidate."
+              },
+              "fullDescription": {
+                "text": "Ignored by tolerant readers; strict schema validation on the client rejects it."
+              },
+              "help": {
+                "text": "Ignored by tolerant readers; strict schema validation on the client rejects it."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1007",
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "family": "drift"
+              }
+            },
+            {
+              "id": "PG1008",
+              "name": "FIELD_NOW_ALWAYS_PRESENT",
+              "shortDescription": {
+                "text": "An optional field is now always present."
+              },
+              "fullDescription": {
+                "text": "Harmless for consumers."
+              },
+              "help": {
+                "text": "Harmless for consumers."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1008",
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "family": "drift"
+              }
+            },
+            {
+              "id": "PG2001",
+              "name": "VALUE",
+              "shortDescription": {
+                "text": "Baseline and candidate return different values for the same request."
+              },
+              "fullDescription": {
+                "text": "Consumers see different data after the migration: prices, totals, flags."
+              },
+              "help": {
+                "text": "Consumers see different data after the migration: prices, totals, flags."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2001",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "difference"
+              }
+            },
+            {
+              "id": "PG2002",
+              "name": "TYPE",
+              "shortDescription": {
+                "text": "A value has a different JSON type on each side."
+              },
+              "fullDescription": {
+                "text": "The same parse failure a type drift causes, observed on one concrete value."
+              },
+              "help": {
+                "text": "The same parse failure a type drift causes, observed on one concrete value."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2002",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "difference"
+              }
+            },
+            {
+              "id": "PG2003",
+              "name": "MISSING_IN_CANDIDATE",
+              "shortDescription": {
+                "text": "A key or collection item returned by the baseline is missing from the candidate."
+              },
+              "fullDescription": {
+                "text": "Data disappears for consumers: a row, an attribute, a page entry."
+              },
+              "help": {
+                "text": "Data disappears for consumers: a row, an attribute, a page entry."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2003",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "difference"
+              }
+            },
+            {
+              "id": "PG2004",
+              "name": "EXTRA_IN_CANDIDATE",
+              "shortDescription": {
+                "text": "The candidate returns a key or collection item the baseline did not."
+              },
+              "fullDescription": {
+                "text": "Consumers see data they did not before, which may be an exposure."
+              },
+              "help": {
+                "text": "Consumers see data they did not before, which may be an exposure."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2004",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "difference"
+              }
+            },
+            {
+              "id": "PG2005",
+              "name": "LENGTH",
+              "shortDescription": {
+                "text": "A collection has a different number of items on each side."
+              },
+              "fullDescription": {
+                "text": "Pagination, counts and 'no results' states diverge."
+              },
+              "help": {
+                "text": "Pagination, counts and 'no results' states diverge."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2005",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "difference"
+              }
+            },
+            {
+              "id": "PG2006",
+              "name": "ORDER_ONLY",
+              "shortDescription": {
+                "text": "The same items come back in a different order."
+              },
+              "fullDescription": {
+                "text": "Harmless unless order is part of the contract; then assert on the sort key."
+              },
+              "help": {
+                "text": "Harmless unless order is part of the contract; then assert on the sort key."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2006",
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "family": "difference"
+              }
+            },
+            {
+              "id": "PG2007",
+              "name": "ORDER",
+              "shortDescription": {
+                "text": "The same items come back in a different order, and order is compared."
+              },
+              "fullDescription": {
+                "text": "Lists render in a different sequence; 'first item' logic changes."
+              },
+              "help": {
+                "text": "Lists render in a different sequence; 'first item' logic changes."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2007",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "difference"
+              }
+            },
+            {
+              "id": "PG2008",
+              "name": "KEY_MATCH_UNAVAILABLE",
+              "shortDescription": {
+                "text": "Identity matching was requested but the key is not unique on both sides."
+              },
+              "fullDescription": {
+                "text": "A configuration problem: differences reported under this collection may be ordering artefacts rather than regressions."
+              },
+              "help": {
+                "text": "A configuration problem: differences reported under this collection may be ordering artefacts rather than regressions."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2008",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "difference"
+              }
+            },
+            {
+              "id": "PG3001",
+              "name": "status",
+              "shortDescription": {
+                "text": "The status code is not the one the case expects."
+              },
+              "fullDescription": {
+                "text": "Clients branch on status: caching, retries and error screens all change."
+              },
+              "help": {
+                "text": "Clients branch on status: caching, retries and error screens all change."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3001",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "check"
+              }
+            },
+            {
+              "id": "PG3002",
+              "name": "status_parity",
+              "shortDescription": {
+                "text": "Baseline and candidate answer the same request with different statuses."
+              },
+              "fullDescription": {
+                "text": "The classic softened error: a 404 that became an empty 200 is cached as data."
+              },
+              "help": {
+                "text": "The classic softened error: a 404 that became an empty 200 is cached as data."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3002",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "check"
+              }
+            },
+            {
+              "id": "PG3003",
+              "name": "recorded_status",
+              "shortDescription": {
+                "text": "The endpoint answers with a status its recorded contract never saw."
+              },
+              "fullDescription": {
+                "text": "The same softened-error risk, caught without a live baseline."
+              },
+              "help": {
+                "text": "The same softened-error risk, caught without a live baseline."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3003",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "check"
+              }
+            },
+            {
+              "id": "PG3004",
+              "name": "json",
+              "shortDescription": {
+                "text": "The response body is not usable JSON."
+              },
+              "fullDescription": {
+                "text": "Every consumer's parser fails on this response."
+              },
+              "help": {
+                "text": "Every consumer's parser fails on this response."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3004",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "check"
+              }
+            },
+            {
+              "id": "PG3005",
+              "name": "required_field",
+              "shortDescription": {
+                "text": "A field the case declares required is missing."
+              },
+              "fullDescription": {
+                "text": "A field a consumer was named as depending on is gone."
+              },
+              "help": {
+                "text": "A field a consumer was named as depending on is gone."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3005",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "check"
+              }
+            },
+            {
+              "id": "PG3006",
+              "name": "forbidden_field",
+              "shortDescription": {
+                "text": "A field the case declares forbidden is present."
+              },
+              "fullDescription": {
+                "text": "Data exposure: something that must not leave the service does."
+              },
+              "help": {
+                "text": "Data exposure: something that must not leave the service does."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3006",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "check"
+              }
+            },
+            {
+              "id": "PG3007",
+              "name": "graphql_errors",
+              "shortDescription": {
+                "text": "A GraphQL response carries errors, or lacks the errors the case expects."
+              },
+              "fullDescription": {
+                "text": "Partial data behind a 200: the status code alone reports success."
+              },
+              "help": {
+                "text": "Partial data behind a 200: the status code alone reports success."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3007",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "check"
+              }
+            },
+            {
+              "id": "PG3008",
+              "name": "latency",
+              "shortDescription": {
+                "text": "Median latency exceeds the case's budget."
+              },
+              "fullDescription": {
+                "text": "Slower screens and timeouts in clients with tight deadlines."
+              },
+              "help": {
+                "text": "Slower screens and timeouts in clients with tight deadlines."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3008",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "check"
+              }
+            },
+            {
+              "id": "PG4001",
+              "name": "FLAKY_STATUS",
+              "shortDescription": {
+                "text": "The status code varied across identical calls."
+              },
+              "fullDescription": {
+                "text": "Nothing else measured from this endpoint means anything until it is fixed."
+              },
+              "help": {
+                "text": "Nothing else measured from this endpoint means anything until it is fixed."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg4001",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "family": "stability"
+              }
+            },
+            {
+              "id": "PG4002",
+              "name": "FLAKY_SHAPE",
+              "shortDescription": {
+                "text": "The response shape varied across identical calls."
+              },
+              "fullDescription": {
+                "text": "Consumers see a different structure depending on timing or cache state."
+              },
+              "help": {
+                "text": "Consumers see a different structure depending on timing or cache state."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg4002",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "family": "stability"
+              }
+            },
+            {
+              "id": "PG4003",
+              "name": "VOLATILE_BODY",
+              "shortDescription": {
+                "text": "Values moved across identical calls while the shape held."
+              },
+              "fullDescription": {
+                "text": "Noise, not breakage: mask the suggested paths so it stops being compared."
+              },
+              "help": {
+                "text": "Noise, not breakage: mask the suggested paths so it stops being compared."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg4003",
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "properties": {
+                "family": "stability"
+              }
+            },
+            {
+              "id": "PG5001",
+              "name": "run_error",
+              "shortDescription": {
+                "text": "The case could not be judged: transport failure, safety refusal or a tool defect."
+              },
+              "fullDescription": {
+                "text": "No verdict about the API exists for this case; treat it as unverified."
+              },
+              "help": {
+                "text": "No verdict about the API exists for this case; treat it as unverified."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg5001",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "family": "run"
+              }
+            },
+            {
+              "id": "PG5002",
+              "name": "not_gated",
+              "shortDescription": {
+                "text": "The case ran but its comparison was skipped."
+              },
+              "fullDescription": {
+                "text": "Its shape is not gated: re-record the contract or stabilise the endpoint."
+              },
+              "help": {
+                "text": "Its shape is not gated: re-record the contract or stabilise the endpoint."
+              },
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg5002",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "family": "run"
+              }
+            }
+          ]
+        }
+      },
+      "automationDetails": {
+        "id": "parity-gate/demo-catalog/"
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "startTimeUtc": "2026-09-14T02:33:30Z",
+          "endTimeUtc": "2026-09-14T02:33:30Z"
+        }
+      ],
+      "properties": {
+        "runId": "20260914T023330Z-706fb7",
+        "mode": "differential",
+        "verdict": "FAIL",
+        "chainHead": "c58ec76b96e7449b95857f901409c22d4f66827394cd35cb64cbca7e88065615"
+      },
+      "results": [
+        {
+          "ruleId": "PG1003",
+          "level": "error",
+          "message": {
+            "text": "CAT-001: NULLABLE_ADDED (breaking) at $.products[].discount: candidate can return null where baseline never did (['number'] -> ['null', 'number'])"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 42
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "b63aa4f98dce8bdef4575b0f063f1a98"
+          },
+          "properties": {
+            "case": "CAT-001",
+            "requirement": "REQ-CAT-01",
+            "risk": "critical",
+            "path": "$.products[].discount",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1004",
+          "level": "error",
+          "message": {
+            "text": "CAT-001: TYPE_CHANGED (breaking) at $.products[].price: incompatible type change (['number'] -> ['string'])"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 42
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "5d1c2ad4e114a1dbc3dc109bcc0f2003"
+          },
+          "properties": {
+            "case": "CAT-001",
+            "requirement": "REQ-CAT-01",
+            "risk": "critical",
+            "path": "$.products[].price",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1001",
+          "level": "error",
+          "message": {
+            "text": "CAT-001: FIELD_REMOVED (breaking) at $.products[].stock: present in baseline but absent from candidate (was always present)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 42
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "91e8a1e6b8faea74779eb6a37fe98fd7"
+          },
+          "properties": {
+            "case": "CAT-001",
+            "requirement": "REQ-CAT-01",
+            "risk": "critical",
+            "path": "$.products[].stock",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1007",
+          "level": "note",
+          "message": {
+            "text": "CAT-001: FIELD_ADDED (additive) at $.products[].internalCost: new in candidate; harmless for consumers that ignore unknown fields"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 42
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "45160bf2ac01df18b7e9ffcd1737679d"
+          },
+          "properties": {
+            "case": "CAT-001",
+            "requirement": "REQ-CAT-01",
+            "risk": "critical",
+            "path": "$.products[].internalCost",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1007",
+          "level": "note",
+          "message": {
+            "text": "CAT-001: FIELD_ADDED (additive) at $.products[].warehouseId: new in candidate; harmless for consumers that ignore unknown fields"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 42
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "82e17791ffa806482e22041dc85ce8ea"
+          },
+          "properties": {
+            "case": "CAT-001",
+            "requirement": "REQ-CAT-01",
+            "risk": "critical",
+            "path": "$.products[].warehouseId",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG2006",
+          "level": "note",
+          "message": {
+            "text": "CAT-001: ORDER_ONLY at $.products: baseline [1, 2, 3, 4], candidate [4, 3, 2, 1]"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 42
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "be2fa6603064f7fee53fee309127cfea"
+          },
+          "properties": {
+            "case": "CAT-001",
+            "requirement": "REQ-CAT-01",
+            "risk": "critical",
+            "path": "$.products",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG2001",
+          "level": "error",
+          "message": {
+            "text": "CAT-001: VALUE at $.total: baseline 4, candidate 3"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 42
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "0ba351aaf4e9b80072539cfaccbd8873"
+          },
+          "properties": {
+            "case": "CAT-001",
+            "requirement": "REQ-CAT-01",
+            "risk": "critical",
+            "path": "$.total",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG3001",
+          "level": "error",
+          "message": {
+            "text": "CAT-003: expected [404], got 200"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 63
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "7ed9773ffb21f318fef594253b438069"
+          },
+          "properties": {
+            "case": "CAT-003",
+            "requirement": "REQ-CAT-03",
+            "risk": "high",
+            "path": "$",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG3002",
+          "level": "error",
+          "message": {
+            "text": "CAT-003: baseline answered [404], candidate answered [200]"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 63
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "e6a4dcb5180139e218a37fe45302ff89"
+          },
+          "properties": {
+            "case": "CAT-003",
+            "requirement": "REQ-CAT-03",
+            "risk": "high",
+            "path": "$",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1001",
+          "level": "error",
+          "message": {
+            "text": "CAT-003: FIELD_REMOVED (breaking) at $.code: present in baseline but absent from candidate (was always present)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 63
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "0f3afcd5c7c6c5a51f2ed66942c951c4"
+          },
+          "properties": {
+            "case": "CAT-003",
+            "requirement": "REQ-CAT-03",
+            "risk": "high",
+            "path": "$.code",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1001",
+          "level": "error",
+          "message": {
+            "text": "CAT-003: FIELD_REMOVED (breaking) at $.error: present in baseline but absent from candidate (was always present)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 63
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "513865f6c767f2cd7965dc19303b4eb7"
+          },
+          "properties": {
+            "case": "CAT-003",
+            "requirement": "REQ-CAT-03",
+            "risk": "high",
+            "path": "$.error",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1007",
+          "level": "note",
+          "message": {
+            "text": "CAT-003: FIELD_ADDED (additive) at $.data: new in candidate; harmless for consumers that ignore unknown fields"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 63
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "4ee90e8602e9de129c45720baeb6d111"
+          },
+          "properties": {
+            "case": "CAT-003",
+            "requirement": "REQ-CAT-03",
+            "risk": "high",
+            "path": "$.data",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG3006",
+          "level": "error",
+          "message": {
+            "text": "SEC-001: $.products[].internalCost must not be exposed but is present"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 72
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "42acb6031966aeb70e83f324fc838f22"
+          },
+          "properties": {
+            "case": "SEC-001",
+            "requirement": "REQ-SEC-01",
+            "risk": "critical",
+            "path": "$",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1004",
+          "level": "error",
+          "message": {
+            "text": "SEC-001: TYPE_CHANGED (breaking) at $.products[].price: incompatible type change (['number'] -> ['string'])"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 72
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "afc9446b7d7fa8d6ccbc84b4004d1c30"
+          },
+          "properties": {
+            "case": "SEC-001",
+            "requirement": "REQ-SEC-01",
+            "risk": "critical",
+            "path": "$.products[].price",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1001",
+          "level": "error",
+          "message": {
+            "text": "SEC-001: FIELD_REMOVED (breaking) at $.products[].stock: present in baseline but absent from candidate (was always present)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 72
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "63e893922ace77ceea11bd69a1673786"
+          },
+          "properties": {
+            "case": "SEC-001",
+            "requirement": "REQ-SEC-01",
+            "risk": "critical",
+            "path": "$.products[].stock",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1007",
+          "level": "note",
+          "message": {
+            "text": "SEC-001: FIELD_ADDED (additive) at $.products[].internalCost: new in candidate; harmless for consumers that ignore unknown fields"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 72
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "2a6c77b4cc55436ca1bf69903fa197a4"
+          },
+          "properties": {
+            "case": "SEC-001",
+            "requirement": "REQ-SEC-01",
+            "risk": "critical",
+            "path": "$.products[].internalCost",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1007",
+          "level": "note",
+          "message": {
+            "text": "SEC-001: FIELD_ADDED (additive) at $.products[].warehouseId: new in candidate; harmless for consumers that ignore unknown fields"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 72
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "27bcb0ee004f785a3eed23341075f5e1"
+          },
+          "properties": {
+            "case": "SEC-001",
+            "requirement": "REQ-SEC-01",
+            "risk": "critical",
+            "path": "$.products[].warehouseId",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG2006",
+          "level": "note",
+          "message": {
+            "text": "SEC-001: ORDER_ONLY at $.products: baseline [1, 2], candidate [2, 1]"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 72
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "cdef4bc5fd4d12e925321c18f21e7f9c"
+          },
+          "properties": {
+            "case": "SEC-001",
+            "requirement": "REQ-SEC-01",
+            "risk": "critical",
+            "path": "$.products",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG2001",
+          "level": "error",
+          "message": {
+            "text": "SEC-001: VALUE at $.total: baseline 2, candidate 1"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 72
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "ce613f2c2bbfe5449d34a8e33b220306"
+          },
+          "properties": {
+            "case": "SEC-001",
+            "requirement": "REQ-SEC-01",
+            "risk": "critical",
+            "path": "$.total",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG4003",
+          "level": "note",
+          "message": {
+            "text": "OPS-001: baseline VOLATILE_BODY: values changed between identical calls; add the suggested paths to policy.mask_paths to stop diffing noise"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 82
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "dc0b5b52c7aa4f9072feaf056199b309"
+          },
+          "properties": {
+            "case": "OPS-001",
+            "requirement": "REQ-OPS-01",
+            "risk": "low",
+            "path": "$",
+            "verdict": "WARN"
+          }
+        },
+        {
+          "ruleId": "PG4003",
+          "level": "note",
+          "message": {
+            "text": "OPS-001: candidate VOLATILE_BODY: values changed between identical calls; add the suggested paths to policy.mask_paths to stop diffing noise"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 82
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "dc0b5b52c7aa4f9072feaf056199b309"
+          },
+          "properties": {
+            "case": "OPS-001",
+            "requirement": "REQ-OPS-01",
+            "risk": "low",
+            "path": "$",
+            "verdict": "WARN"
+          }
+        },
+        {
+          "ruleId": "PG4001",
+          "level": "warning",
+          "message": {
+            "text": "OPS-002: candidate FLAKY_STATUS: parity comparison skipped: candidate is FLAKY_STATUS across 3 identical calls. Stabilise the endpoint before trusting any diff taken from it."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 94
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "91c0b9e362932b0cc9aed884d1bcf530"
+          },
+          "properties": {
+            "case": "OPS-002",
+            "requirement": "REQ-OPS-02",
+            "risk": "medium",
+            "path": "$",
+            "verdict": "WARN"
+          }
+        },
+        {
+          "ruleId": "PG3007",
+          "level": "error",
+          "message": {
+            "text": "GQL-001: the response carries GraphQL errors: Cannot resolve field 'stock' on type 'Product'"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 103
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "95a65a1967afb6a66ba0291fb10b88e9"
+          },
+          "properties": {
+            "case": "GQL-001",
+            "requirement": "REQ-GQL-01",
+            "risk": "critical",
+            "path": "$",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1004",
+          "level": "error",
+          "message": {
+            "text": "GQL-001: TYPE_CHANGED (breaking) at $.data.products[].price: incompatible type change (['number'] -> ['string'])"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 103
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "2fcabadb62e32644a4ec1842a78e197c"
+          },
+          "properties": {
+            "case": "GQL-001",
+            "requirement": "REQ-GQL-01",
+            "risk": "critical",
+            "path": "$.data.products[].price",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1001",
+          "level": "error",
+          "message": {
+            "text": "GQL-001: FIELD_REMOVED (breaking) at $.data.products[].stock: present in baseline but absent from candidate (was always present)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 103
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "f0a593f7d21d667e76616b8a1304b12d"
+          },
+          "properties": {
+            "case": "GQL-001",
+            "requirement": "REQ-GQL-01",
+            "risk": "critical",
+            "path": "$.data.products[].stock",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1007",
+          "level": "note",
+          "message": {
+            "text": "GQL-001: FIELD_ADDED (additive) at $.data.products[].internalCost: new in candidate; harmless for consumers that ignore unknown fields"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 103
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "65e1800a82308983175141dbd8a95d65"
+          },
+          "properties": {
+            "case": "GQL-001",
+            "requirement": "REQ-GQL-01",
+            "risk": "critical",
+            "path": "$.data.products[].internalCost",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG1007",
+          "level": "note",
+          "message": {
+            "text": "GQL-001: FIELD_ADDED (additive) at $.data.products[].warehouseId: new in candidate; harmless for consumers that ignore unknown fields"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 103
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "1d309d5c1c60dc67230462ec6871e7d2"
+          },
+          "properties": {
+            "case": "GQL-001",
+            "requirement": "REQ-GQL-01",
+            "risk": "critical",
+            "path": "$.data.products[].warehouseId",
+            "verdict": "FAIL"
+          }
+        },
+        {
+          "ruleId": "PG2004",
+          "level": "error",
+          "message": {
+            "text": "GQL-001: EXTRA_IN_CANDIDATE at $.errors: baseline None, candidate [{'message': \"Cannot resolve field 'stock' on type 'Produ..."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/parity_gate/demo/demo-catalog.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 103
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "parityGate/v1": "aa38d56d6866047b3eec057b2b1382de"
+          },
+          "properties": {
+            "case": "GQL-001",
+            "requirement": "REQ-GQL-01",
+            "risk": "critical",
+            "path": "$.errors",
+            "verdict": "FAIL"
+          }
+        }
+      ]
+    }
+  ]
+}

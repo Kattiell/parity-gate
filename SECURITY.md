@@ -23,14 +23,14 @@ Three things follow from that.
   `rk_live_…`, `glpat-…`, `npm_…`, `dop_v1_…`, `AIza…`, PEM blocks,
   `user:pass@host` in URLs) plus personal data (e-mail, CPF, CNPJ, and card
   numbers that pass a Luhn check).
-- **What that does not cover, stated plainly:** a credential with no prefix —
-  an AWS *secret* access key, a bare 32-character API key, an opaque session id
-  — appearing as a naked value under an innocuous key. Nothing here will catch
+- **What that does not cover, stated plainly:** a credential with no prefix
+  (an AWS *secret* access key, a bare 32-character API key, an opaque session id)
+  appearing as a naked value under an innocuous key. Nothing here will catch
   it. Put credentials behind one of the names in `SENSITIVE_KEYS`, or review
   evidence before publishing it.
 - Card masking is gated behind Luhn on purpose. Masking every 13-to-19-digit
   run destroyed barcodes, phone numbers and timestamps in the evidence while
-  letting longer numbers through — a rule that mangles real data produces
+  letting longer numbers through, and a rule that mangles real data produces
   evidence nobody can use.
 - Response bodies are capped in the evidence file so a large payload cannot
   balloon an artifact.
@@ -53,13 +53,24 @@ Three things follow from that.
   production does not get followed.
 - **Credentials are dropped when a redirect changes host.** `Authorization`,
   `Proxy-Authorization` and `Cookie` are stripped before following a hop to a
-  different scheme, host or port — a token issued for one host must not be
+  different scheme, host or port. A token issued for one host must not be
   replayed to another, even one the allow-list permits.
 - **Connections are pooled per host and owned by one thread.** A `Client` is
   not thread-safe; the runner keeps one per worker, so a credential set for one
   target cannot ride a socket shared with another.
 - **Fail before sending.** Every URL, method and credential is resolved up
   front; a misconfigured run makes zero requests.
+- **A misbehaving service cannot hang or exhaust the run.** `timeout_seconds`
+  is a deadline for the whole response body, not a per-read timeout that every
+  trickled byte would reset; bodies above `max_response_bytes` (10 MiB by
+  default) are refused before they are held in memory; and JSON nested more
+  than 64 levels deep is refused at decode time rather than recursed into.
+  Status line and headers are still read by `http.client` under the per-read
+  timeout and its own header limits, so a server that trickles *headers* can
+  stretch an exchange.
+- **A defect in the tool fails one case, not the run.** An unexpected exception
+  while judging a case becomes an `ERROR` record for that case; the rest of
+  the run and its evidence are still written.
 - **Retries are off by default.** Beyond hiding flakiness, a retry loop against
   a struggling service is extra load at the worst moment.
 - **One worker by default.** Concurrency is opt-in, because a QA tool that
@@ -72,7 +83,7 @@ Records are hash-chained: each record's hash covers its content and the hash of
 the record before it, and the chain head is written to a manifest alongside the
 SHA-256 of every file. `parity-gate verify` recomputes both.
 
-This detects accidental alteration — a truncated upload, a partially synced
+This detects accidental alteration: a truncated upload, a partially synced
 artifact, a report edited by hand before being pasted into a ticket. It is not
 proof against a determined author, who can recompute the chain. It is not
 claimed to be.
@@ -80,7 +91,7 @@ claimed to be.
 ## Supply chain
 
 The runtime has **zero third-party dependencies**; it is standard library only.
-`ruff` and `pytest` are development dependencies and are not imported by the
+`ruff`, `mypy` and `pytest` are development dependencies and are not imported by the
 tool. CI runs with `permissions: contents: read` and no secrets, and the tool
 scans its own repository for credential-shaped strings on every build.
 
@@ -89,6 +100,6 @@ scans its own repository for credential-shaped strings on every build.
 - Redaction is pattern-based and prefix-anchored. See the explicit
   non-coverage above; review evidence before attaching it to a public issue.
 - The production guard matches on hostname substrings. An environment whose
-  production host does not say "prod" is not covered by it — the host allow-list
+  production host does not say "prod" is not covered by it; the host allow-list
   is the control that is.
 - Hash chaining detects alteration, not forgery.
