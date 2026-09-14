@@ -60,6 +60,17 @@ Three things follow from that.
   target cannot ride a socket shared with another.
 - **Fail before sending.** Every URL, method and credential is resolved up
   front; a misconfigured run makes zero requests.
+- **A misbehaving service cannot hang or exhaust the run.** `timeout_seconds`
+  is a deadline for the whole response body, not a per-read timeout that every
+  trickled byte would reset; bodies above `max_response_bytes` (10 MiB by
+  default) are refused before they are held in memory; and JSON nested more
+  than 64 levels deep is refused at decode time rather than recursed into.
+  Status line and headers are still read by `http.client` under the per-read
+  timeout and its own header limits, so a server that trickles *headers* can
+  stretch an exchange.
+- **A defect in the tool fails one case, not the run.** An unexpected exception
+  while judging a case becomes an `ERROR` record for that case; the rest of
+  the run and its evidence are still written.
 - **Retries are off by default.** Beyond hiding flakiness, a retry loop against
   a struggling service is extra load at the worst moment.
 - **One worker by default.** Concurrency is opt-in, because a QA tool that
@@ -80,7 +91,7 @@ claimed to be.
 ## Supply chain
 
 The runtime has **zero third-party dependencies**; it is standard library only.
-`ruff` and `pytest` are development dependencies and are not imported by the
+`ruff`, `mypy` and `pytest` are development dependencies and are not imported by the
 tool. CI runs with `permissions: contents: read` and no secrets, and the tool
 scans its own repository for credential-shaped strings on every build.
 

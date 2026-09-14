@@ -246,9 +246,14 @@ def _build(data: dict[str, Any], source: Path) -> Suite:
         allow_production=bool(policy_raw.get("allow_production", False)),
         allow_private_networks=bool(policy_raw.get("allow_private_networks", False)),
         timeout_seconds=float(policy_raw.get("timeout_seconds", 10.0)),
+        max_response_bytes=int(policy_raw.get("max_response_bytes", Policy.max_response_bytes)),
         max_retries=int(policy_raw.get("max_retries", 0)),
         workers=max(1, int(policy_raw.get("workers", 1))),
     )
+    if policy.timeout_seconds <= 0:
+        raise SuiteError(f"{source}: policy.timeout_seconds must be > 0")
+    if policy.max_response_bytes < 1:
+        raise SuiteError(f"{source}: policy.max_response_bytes must be >= 1")
     if "forbidden_host_patterns" in policy_raw:
         policy.forbidden_host_patterns = [str(p) for p in policy_raw["forbidden_host_patterns"]]
     if not policy.allowed_hosts:

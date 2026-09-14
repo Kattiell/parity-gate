@@ -20,6 +20,17 @@ behaviour rather than plumbing:
   ``api.staging`` has no business being replayed to whatever answered the
   redirect, even when that host is also on the allow-list.
 
+And two that keep a misbehaving service from taking the gate down with it:
+
+* **A response is bounded in time and in size.** A socket timeout alone is
+  reset by every byte that arrives, so a server trickling one byte a second
+  would hold a CI job open indefinitely. ``timeout_seconds`` is therefore a
+  deadline for the whole exchange, and ``max_response_bytes`` caps the body.
+* **A body nested deeper than the tool can walk is refused at decode time.**
+  Everything downstream (inference, diffing, redaction) recurses, so the limit
+  is enforced once, here, as a finding about the response rather than as a
+  ``RecursionError`` about the tool.
+
 A :class:`Client` owns its connections and is **not thread-safe**. The runner
 keeps one per worker thread; nothing else should share one.
 """
@@ -48,8 +59,24 @@ REDIRECT_STATUS = REDIRECT_TO_GET | REDIRECT_PRESERVING
 
 MAX_REDIRECTS = 5
 
+#: Containers nested inside one another before a body is refused. The same
+#: bound redaction applies, so nothing reaches the evidence that redaction could
+#: not have walked. Real APIs sit far below it; a payload above it is either
+#: broken or hostile, and neither should crash the run.
+MAX_JSON_DEPTH = 64
+
+_READ_CHUNK = 64 * 1024
+
 #: Never replayed to a host other than the one they were sent to.
 CREDENTIAL_HEADERS = frozenset({"authorization", "proxy-authorization", "cookie"})
+
+
+class ResponseTooLarge(OSError):
+    """The body exceeded ``policy.max_response_bytes``. Never retried."""
+
+
+class DeadlineExceeded(TimeoutError):
+    """The exchange did not complete within ``policy.timeout_seconds``. Never retried."""
 
 
 @dataclass
@@ -255,13 +282,17 @@ class Client:
         for attempt in range(allowed_tries):
             reused = self.pool.holds(scheme, host, port)
             connection = self.pool.get(scheme, host, port)
+            deadline = time.monotonic() + self.policy.timeout_seconds
             try:
                 connection.request(method, target, body=payload, headers=headers)
                 raw_response = connection.getresponse()
-                body = raw_response.read()
-            except (TimeoutError, http.client.HTTPException, OSError):
+                body = self._read_body(raw_response, connection, deadline)
+            except (TimeoutError, http.client.HTTPException, OSError) as exc:
                 self.pool.drop(scheme, host, port)
-                if reused and attempt + 1 < allowed_tries:
+                # A body that was too big or too slow says nothing about the
+                # socket being stale; a second try would only double the cost.
+                bounded = isinstance(exc, ResponseTooLarge | DeadlineExceeded)
+                if reused and not bounded and attempt + 1 < allowed_tries:
                     continue
                 raise
 
@@ -271,6 +302,67 @@ class Client:
             return raw_response.status, received, body
 
         raise OSError("connection could not be established")  # pragma: no cover
+
+    def _read_body(
+        self,
+        raw_response: http.client.HTTPResponse,
+        connection: http.client.HTTPConnection,
+        deadline: float,
+    ) -> bytes:
+        """Read the body under a size cap and a deadline for the whole exchange.
+
+        ``read1`` returns after at most one read on the socket, and the socket
+        timeout is shrunk to whatever is left of the deadline before each one.
+        Together that makes the deadline real: a server sending one byte a
+        second cannot keep resetting it.
+
+        The status line and headers are read by :mod:`http.client` itself, so
+        they are bounded by the socket timeout per read and by its own header
+        limits rather than by this deadline. A server that trickles *headers*
+        can still stretch an exchange; bodies are where runaway responses live.
+        """
+        limit = self.policy.max_response_bytes
+        declared = raw_response.getheader("Content-Length") or ""
+        if declared.isdigit() and int(declared) > limit:
+            raise ResponseTooLarge(
+                f"response declares {declared} bytes, above max_response_bytes ({limit})"
+            )
+
+        chunks: list[bytes] = []
+        received = 0
+
+        def overdue() -> DeadlineExceeded:
+            return DeadlineExceeded(
+                f"response not complete within {self.policy.timeout_seconds}s "
+                f"({received} bytes received)"
+            )
+
+        try:
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise overdue()
+                if connection.sock is not None:
+                    connection.sock.settimeout(remaining)
+                try:
+                    chunk = raw_response.read1(_READ_CHUNK)
+                except TimeoutError as exc:
+                    # The socket timeout was the remainder of the deadline, so
+                    # a timeout here is the deadline, whatever class it has.
+                    raise overdue() from exc
+                if not chunk:
+                    return b"".join(chunks)
+                received += len(chunk)
+                if received > limit:
+                    raise ResponseTooLarge(
+                        f"response exceeded max_response_bytes ({limit}) before it ended"
+                    )
+                chunks.append(chunk)
+        finally:
+            # The connection goes back into the pool; the next request is owed
+            # the full timeout, not the remainder of this one.
+            if connection.sock is not None:
+                connection.sock.settimeout(self.policy.timeout_seconds)
 
 
 def _closing(raw_response: http.client.HTTPResponse, headers: dict[str, str]) -> bool:
@@ -291,11 +383,43 @@ def _decode_json(response: Response) -> None:
         response.json_error = None if response.status in {204, 205, 304} else "empty body"
         return
     try:
-        response.json_body = json.loads(response.body_text)
-        response.json_error = None
+        decoded = json.loads(response.body_text)
     except json.JSONDecodeError as exc:
         response.json_body = None
         response.json_error = f"invalid JSON at line {exc.lineno} col {exc.colno}: {exc.msg}"
+        return
+    except RecursionError:
+        # The parser itself gave up. Caught here, because anything that escapes
+        # a worker thread takes the whole run down without writing evidence.
+        response.json_body = None
+        response.json_error = f"JSON nested too deeply to parse (limit {MAX_JSON_DEPTH} levels)"
+        return
+
+    if _nesting_exceeds(decoded, MAX_JSON_DEPTH):
+        response.json_body = None
+        response.json_error = (
+            f"JSON nested more than {MAX_JSON_DEPTH} levels deep; refused rather than walked"
+        )
+        return
+    response.json_body = decoded
+    response.json_error = None
+
+
+def _nesting_exceeds(value: Any, limit: int) -> bool:
+    """Whether containers nest more than ``limit`` deep. Iterative on purpose."""
+    stack: list[tuple[Any, int]] = [(value, 0)]
+    while stack:
+        current, depth = stack.pop()
+        if isinstance(current, dict):
+            children: Any = current.values()
+        elif isinstance(current, list):
+            children = current
+        else:
+            continue
+        if depth + 1 > limit:
+            return True
+        stack.extend((child, depth + 1) for child in children)
+    return False
 
 
 def _backoff(attempt: int) -> float:

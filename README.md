@@ -200,7 +200,7 @@ pip install -e ".[dev]"
 parity-gate demo --mode contract         # gate against a recorded contract
 parity-gate demo --mode stability        # measure the noise
 parity-gate demo                         # differential, two live services
-pytest -q                                # 213 tests, no network
+pytest -q                                # 224 tests, no network
 ```
 
 All of it runs against a bundled mock that serves a catalogue API twice — once
@@ -372,6 +372,8 @@ allow_mutations = false
 repeats = 3                             # samples per endpoint, for stability
 max_retries = 0                         # a retried 503 hides the flakiness
 workers = 1                             # raise it deliberately; it is someone's staging
+timeout_seconds = 10                    # a deadline for the whole response, not per read
+max_response_bytes = 10485760           # a runaway body is refused, not loaded
 mask_paths = ["$.meta.requestId", "$.*.updatedAt"]
 
 [policy.array_keys]
@@ -476,13 +478,15 @@ and installing it should pull nothing.
 | `redaction.py` | Everything leaving the process, scrubbed |
 | `evidence.py` | Hash-chained records, manifest, traceability matrix, verification |
 | `report.py` | Markdown for tickets, self-contained HTML for CI |
-| `httpclient.py` | Pooled `http.client`: explicit timeouts, retries, re-validated redirects |
+| `httpclient.py` | Pooled `http.client`: response deadline and size cap, retries, re-validated redirects |
 | `runner.py` | Orchestration and the verdict rules for all three modes |
 | `mock/server.py` | The two-headed demo API, deterministic down to the flaky endpoint |
 
-**213 tests**, unit and integration, offline. The CI matrix is configured for
-Python 3.11–3.13 on Linux and Windows; the badge at the top is the honest answer
-to whether it is currently green.
+**224 tests**, unit and integration, offline. [CI](.github/workflows/ci.yml)
+runs them on Python 3.11, 3.12 and 3.13, on Linux and Windows, next to lint,
+format, type checking, a credential scan of the repository and a check that the
+committed evidence bundle still verifies; the badge at the top is the honest
+answer to whether it is currently green.
 
 The integration suite boots the mock and asserts that each planted defect is the
 finding that comes out — including two control experiments that must produce

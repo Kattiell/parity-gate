@@ -253,3 +253,24 @@ path = "/orders"
 def test_a_case_matching_two_patterns_is_not_run_twice(tmp_path: Path) -> None:
     suite = load(write(tmp_path, MINIMAL))
     assert [c.id for c in suite.select(["A-*", "A-1"])] == ["A-1"]
+
+
+def test_response_bounds_default_to_a_deadline_and_a_size_cap(tmp_path: Path) -> None:
+    suite = load(write(tmp_path, MINIMAL))
+    assert suite.policy.timeout_seconds == 10.0
+    assert suite.policy.max_response_bytes == 10 * 1024 * 1024
+
+
+@pytest.mark.parametrize(
+    ("setting", "message"),
+    [
+        ("timeout_seconds = 0", "timeout_seconds must be > 0"),
+        ("max_response_bytes = 0", "max_response_bytes must be >= 1"),
+    ],
+)
+def test_response_bounds_that_would_disable_themselves_are_rejected(
+    tmp_path: Path, setting: str, message: str
+) -> None:
+    body = MINIMAL.replace("[policy]", f"[policy]\n{setting}", 1)
+    with pytest.raises(SuiteError, match=message):
+        load(write(tmp_path, body))

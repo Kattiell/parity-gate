@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import re
 import threading
+import traceback
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -26,6 +28,7 @@ from parity_gate import contracts, evidence, flaky, graphql
 from parity_gate.differ import Difference, diff
 from parity_gate.evidence import ERROR, FAIL, PASS, WARN, Record, Run
 from parity_gate.httpclient import Client, Response
+from parity_gate.redaction import redact_text
 from parity_gate.safety import SafetyError, check_method, check_url
 from parity_gate.schema import Schema, Severity, compare, infer, render_path
 from parity_gate.suite import Case, Suite, Target
@@ -234,7 +237,7 @@ class Runner:
             if on_case:
                 on_case(case, record)
 
-        for record in self._map_cases(measure_one, announce):
+        for record in self._map_cases(_contained(measure_one), announce):
             run.add(record)
 
         run.finished_at = evidence.utc_now()
@@ -247,7 +250,7 @@ class Runner:
         run = self._new_run()
 
         for record in self._map_cases(
-            self._run_case, lambda case, rec: self.on_case and self.on_case(case, rec)
+            _contained(self._run_case), lambda case, rec: self.on_case and self.on_case(case, rec)
         ):
             run.add(record)
 
@@ -542,6 +545,34 @@ class Runner:
         ):
             return WARN
         return PASS
+
+
+def _contained(work: Callable[[Case], Record]) -> Callable[[Case], Record]:
+    """Turn an unexpected exception in one case into an ``ERROR`` record for it.
+
+    An exception escaping a worker thread used to surface at ``future.result()``
+    and end the whole run: no report, no evidence, and every case that had
+    already finished thrown away with it. A defect in the tool is still a
+    defect, and it still fails the gate, but it is reported against the case
+    that triggered it instead of taking the other cases down.
+    """
+
+    def guarded(case: Case) -> Record:
+        try:
+            return work(case)
+        except Exception as exc:
+            frames = traceback.extract_tb(exc.__traceback__)
+            where = f" at {Path(frames[-1].filename).name}:{frames[-1].lineno}" if frames else ""
+            return Record(
+                case=case.to_dict(),
+                verdict=ERROR,
+                error=redact_text(
+                    f"parity-gate raised {type(exc).__name__}{where}: {exc}. This is a defect "
+                    "in the tool, not a finding about the API; the other cases were unaffected."
+                ),
+            )
+
+    return guarded
 
 
 def _check(name: str, passed: bool, failure_detail: str) -> dict[str, Any]:

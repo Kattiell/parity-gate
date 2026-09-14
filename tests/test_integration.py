@@ -20,7 +20,7 @@ import pytest
 
 from parity_gate.cli import EXIT_GATE_FAILED, EXIT_OK, EXIT_REFUSED, main
 from parity_gate.contracts import ContractError, save
-from parity_gate.evidence import FAIL, PASS, WARN, verify
+from parity_gate.evidence import ERROR, FAIL, PASS, WARN, verify
 from parity_gate.mock import MockServer, start
 from parity_gate.runner import Runner
 from parity_gate.safety import SafetyError
@@ -185,6 +185,32 @@ def test_no_credential_reaches_the_evidence(suite_file: Path, monkeypatch) -> No
     serialised = json.dumps(run.to_dict())
     assert "ghp_16CharactersMinimumAAAA" not in serialised
     assert "[REDACTED]" in serialised
+
+
+def test_a_defect_in_the_tool_fails_its_case_and_spares_the_others(
+    suite_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An exception escaping a worker used to end the run with a traceback and
+    no evidence at all, discarding every case that had already finished."""
+    import parity_gate.runner as runner_module
+
+    real_diff = runner_module.diff
+
+    def explode(baseline, candidate, options):  # type: ignore[no-untyped-def]
+        if isinstance(baseline, dict) and "products" in baseline:
+            raise RuntimeError("synthetic defect")
+        return real_diff(baseline, candidate, options)
+
+    monkeypatch.setattr(runner_module, "diff", explode)
+    run = Runner(load(suite_file)).execute()
+    found = {record.case["id"]: record for record in run.records}
+
+    assert len(found) == 6
+    assert found["CAT-001"].verdict == ERROR
+    assert "RuntimeError" in (found["CAT-001"].error or "")
+    assert "defect in the tool" in (found["CAT-001"].error or "")
+    assert found["CAT-002"].verdict == PASS
+    assert run.verdict == ERROR
 
 
 def test_the_cli_writes_a_bundle_that_verifies(suite_file: Path, tmp_path: Path) -> None:

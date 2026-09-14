@@ -49,7 +49,14 @@ class Policy:
     #: Loopback and RFC1918 targets are allowed only on purpose (the bundled
     #: mock server runs on 127.0.0.1, so demo suites set this).
     allow_private_networks: bool = False
+    #: A deadline for one whole exchange (request, headers and body), not for
+    #: each socket read: a read timeout is reset by every byte that arrives, so
+    #: a server trickling its body could otherwise hold a run open forever.
     timeout_seconds: float = 10.0
+    #: Bodies larger than this are refused as a transport error rather than
+    #: loaded into memory. Ten MiB is generous for a JSON API and small enough
+    #: that a runaway export endpoint cannot take the CI job down with it.
+    max_response_bytes: int = 10 * 1024 * 1024
     #: Zero by default, and deliberately so. Retrying a 503 turns an endpoint
     #: that fails one call in three into one that looks healthy, which destroys
     #: the flakiness signal this tool exists to surface. Raise it only for a
@@ -70,6 +77,7 @@ class Policy:
             "allow_private_networks": self.allow_private_networks,
             "forbidden_host_patterns": self.forbidden_host_patterns,
             "timeout_seconds": self.timeout_seconds,
+            "max_response_bytes": self.max_response_bytes,
             "max_retries": self.max_retries,
             "workers": self.workers,
         }
