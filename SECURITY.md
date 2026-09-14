@@ -23,14 +23,14 @@ Three things follow from that.
   `rk_live_…`, `glpat-…`, `npm_…`, `dop_v1_…`, `AIza…`, PEM blocks,
   `user:pass@host` in URLs) plus personal data (e-mail, CPF, CNPJ, and card
   numbers that pass a Luhn check).
-- **What that does not cover, stated plainly:** a credential with no prefix —
-  an AWS *secret* access key, a bare 32-character API key, an opaque session id
-  — appearing as a naked value under an innocuous key. Nothing here will catch
+- **What that does not cover, stated plainly:** a credential with no prefix
+  (an AWS *secret* access key, a bare 32-character API key, an opaque session id)
+  appearing as a naked value under an innocuous key. Nothing here will catch
   it. Put credentials behind one of the names in `SENSITIVE_KEYS`, or review
   evidence before publishing it.
 - Card masking is gated behind Luhn on purpose. Masking every 13-to-19-digit
   run destroyed barcodes, phone numbers and timestamps in the evidence while
-  letting longer numbers through — a rule that mangles real data produces
+  letting longer numbers through, and a rule that mangles real data produces
   evidence nobody can use.
 - Response bodies are capped in the evidence file so a large payload cannot
   balloon an artifact.
@@ -53,7 +53,7 @@ Three things follow from that.
   production does not get followed.
 - **Credentials are dropped when a redirect changes host.** `Authorization`,
   `Proxy-Authorization` and `Cookie` are stripped before following a hop to a
-  different scheme, host or port — a token issued for one host must not be
+  different scheme, host or port. A token issued for one host must not be
   replayed to another, even one the allow-list permits.
 - **Connections are pooled per host and owned by one thread.** A `Client` is
   not thread-safe; the runner keeps one per worker, so a credential set for one
@@ -83,7 +83,7 @@ Records are hash-chained: each record's hash covers its content and the hash of
 the record before it, and the chain head is written to a manifest alongside the
 SHA-256 of every file. `parity-gate verify` recomputes both.
 
-This detects accidental alteration — a truncated upload, a partially synced
+This detects accidental alteration: a truncated upload, a partially synced
 artifact, a report edited by hand before being pasted into a ticket. It is not
 proof against a determined author, who can recompute the chain. It is not
 claimed to be.
@@ -100,6 +100,6 @@ scans its own repository for credential-shaped strings on every build.
 - Redaction is pattern-based and prefix-anchored. See the explicit
   non-coverage above; review evidence before attaching it to a public issue.
 - The production guard matches on hostname substrings. An environment whose
-  production host does not say "prod" is not covered by it — the host allow-list
+  production host does not say "prod" is not covered by it; the host allow-list
   is the control that is.
 - Hash chaining detects alteration, not forgery.

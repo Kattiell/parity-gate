@@ -27,7 +27,7 @@ assertion and the person writing the endpoint share the same misunderstanding
 of the requirement, so the test encodes the bug and passes. That is how a suite
 ends up green over a broken payload.
 
-Golden files are better — the expectation comes from real behaviour — but they
+Golden files are better (the expectation comes from real behaviour), but they
 rot in a specific and expensive way. A fixture recorded in March fails in June
 because a category was renamed, a product was archived, or a `total` legitimately
 grew. The failure is real but uninteresting, and each one is a small tax on
@@ -65,12 +65,12 @@ stability before comparing anything.
 
 If the baseline is decommissioned before the gate is retired, the fallback is to
 record its responses under the same masks the live comparison used, and accept
-the decay — with the expiry written down rather than discovered.
+the decay, with the expiry written down rather than discovered.
 
 ## Revisited
 
 That fallback turned out to be the main event, and the decay turned out to be
 avoidable. [ADR-002](adr-002-record-shape-not-values.md) records a contract that
 holds shape and status but no values, which removes the rot mechanism this
-decision was written to avoid — and lifts the requirement for two live services,
+decision was written to avoid, and lifts the requirement for two live services,
 which was the real limitation here.

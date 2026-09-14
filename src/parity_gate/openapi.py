@@ -5,7 +5,7 @@ Dredd instead of this tool, and often it should be: they check the
 implementation against the spec, which is a question this does not ask.
 
 The reason to import one anyway is that the spec answers a different question
-very cheaply — *which endpoints exist* — and writing that list out by hand is
+very cheaply (*which endpoints exist*), and writing that list out by hand is
 the single largest piece of friction in adopting a contract gate. Thirty
 endpoints is thirty blocks of TOML nobody wants to type.
 
@@ -15,8 +15,8 @@ generated suite is recorded against the running API, so the recorded contract
 and the spec are two independent descriptions of the same thing, and they can
 be compared.
 
-Only JSON is read. Most frameworks serve it live — ``/openapi.json`` for
-FastAPI, ``/v3/api-docs`` for Spring — and adding a YAML parser to a
+Only JSON is read. Most frameworks serve it live (``/openapi.json`` for
+FastAPI, ``/v3/api-docs`` for Spring), and adding a YAML parser to a
 zero-dependency tool to save one conversion is a bad trade.
 """
 
@@ -46,13 +46,13 @@ def load_spec(text: str, origin: str) -> dict[str, Any]:
         hint = ""
         if text.lstrip()[:1] not in {"{", "["}:
             hint = (
-                "\nThis looks like YAML. Only JSON is read — point at the document the "
+                "\nThis looks like YAML. Only JSON is read. Point at the document the "
                 "service serves (commonly /openapi.json or /v3/api-docs), or convert it once."
             )
         raise OpenAPIError(f"{origin}: not valid JSON ({exc}){hint}") from exc
 
     if not isinstance(spec, dict) or not isinstance(spec.get("paths"), dict):
-        raise OpenAPIError(f"{origin}: no `paths` object — this is not an OpenAPI document")
+        raise OpenAPIError(f"{origin}: no `paths` object, so this is not an OpenAPI document")
     return spec
 
 
@@ -144,7 +144,7 @@ def to_suite(
     resolved = (base_url or base_url_of(spec)).rstrip("/")
     if not resolved:
         raise OpenAPIError(
-            "the document declares no server URL — pass --base-url with the address to test"
+            "the document declares no server URL; pass --base-url with the address to test"
         )
     host = urlsplit(resolved).hostname or ""
     info = spec.get("info") or {}
@@ -205,7 +205,7 @@ def to_suite(
             if missing:
                 skipped += 1
                 lines.append(
-                    f"# TODO: no example for path parameter(s) {', '.join(missing)} — "
+                    f"# TODO: no example for path parameter(s) {', '.join(missing)}; "
                     "fill one in and uncomment."
                 )
                 lines.extend(f"# {line}" for line in block)

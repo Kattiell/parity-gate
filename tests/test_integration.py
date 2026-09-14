@@ -438,7 +438,7 @@ def test_a_status_divergence_fails_without_anyone_having_predicted_it(
     """The false PASS the review found.
 
     Baseline answers 404, candidate answers 200. No `expect_status` is written
-    anywhere in STATUS_SUITE — predicting the change is exactly what the tool
+    anywhere in STATUS_SUITE; predicting the change is exactly what the tool
     is supposed to make unnecessary.
     """
     target = tmp_path / "status.toml"

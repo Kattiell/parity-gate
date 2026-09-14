@@ -271,8 +271,8 @@ class Client:
         target = urlunsplit(("", "", parts.path or "/", parts.query, ""))
 
         # A pooled connection the peer has since closed fails on the way out.
-        # The useful question is not which exception that produced -- the answer
-        # differs by platform and by how the peer went away -- but whether this
+        # The useful question is not which exception that produced (the answer
+        # differs by platform and by how the peer went away) but whether this
         # socket was one we had just opened. A connection we did not open may be
         # stale, so one retry on a fresh one is worth it; a brand new connection
         # that failed will fail again. Retrying is still limited to methods that

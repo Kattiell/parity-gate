@@ -2,12 +2,12 @@
 
 **Verdict: FAIL**
 
-- Run `20260912T220414Z-bd26c7` finished 2026-09-12T22:04:14Z
+- Run `20260914T015634Z-f50c22` finished 2026-09-14T01:56:34Z
 - Baseline `http://127.0.0.1:8799/legacy`
 - Candidate `http://127.0.0.1:8799/next`
 - 7 case(s): 1 PASS, 2 WARN, 4 FAIL
 - 9 breaking contract change(s), 5 value difference(s), 1 unstable endpoint(s)
-- Evidence chain head `64d522b982d93735`
+- Evidence chain head `982e4b827dfb9c69`
 
 ## Cases
 
@@ -23,7 +23,7 @@
 
 ## Findings
 
-### FAIL `CAT-001` — Product listing keeps its pagination envelope and item contract
+### FAIL `CAT-001`: Product listing keeps its pagination envelope and item contract
 
 `GET /products?limit=4` · requirement REQ-CAT-01 · risk critical
 
@@ -46,7 +46,7 @@
 
 _17 further value difference(s) are folded away: they are restatements of the contract drift listed above._
 
-### FAIL `CAT-003` — An unknown product id still answers 404, not an empty success
+### FAIL `CAT-003`: An unknown product id still answers 404, not an empty success
 
 `GET /products/999` · requirement REQ-CAT-03 · risk high
 
@@ -65,7 +65,7 @@ _17 further value difference(s) are folded away: they are restatements of the co
 
 _3 further value difference(s) are folded away: they are restatements of the contract drift listed above._
 
-### FAIL `SEC-001` — Internal cost data is never exposed on the public catalogue
+### FAIL `SEC-001`: Internal cost data is never exposed on the public catalogue
 
 `GET /products?limit=2` · requirement REQ-SEC-01 · risk critical
 
@@ -91,11 +91,11 @@ _3 further value difference(s) are folded away: they are restatements of the con
 
 _8 further value difference(s) are folded away: they are restatements of the contract drift listed above._
 
-### WARN `OPS-001` — Health endpoint answers and reports uptime
+### WARN `OPS-001`: Health endpoint answers and reports uptime
 
 `GET /health` · requirement REQ-OPS-01 · risk low
 
-**Stability (both sides)**: `VOLATILE_BODY` over 3 calls — values changed between identical calls; add the suggested paths to policy.mask_paths to stop diffing noise
+**Stability (both sides)**: `VOLATILE_BODY` over 3 calls: values changed between identical calls; add the suggested paths to policy.mask_paths to stop diffing noise
 
 Add to `policy.mask_paths` if this movement is expected:
 
@@ -105,15 +105,15 @@ mask_paths = [
 ]
 ```
 
-### WARN `OPS-002` — Inventory sync status is stable enough to be compared at all
+### WARN `OPS-002`: Inventory sync status is stable enough to be compared at all
 
 `GET /inventory/sync-status` · requirement REQ-OPS-02 · risk medium
 
 > parity comparison skipped: candidate is FLAKY_STATUS across 3 identical calls. Stabilise the endpoint before trusting any diff taken from it.
 
-**Stability (candidate)**: `FLAKY_STATUS` over 3 calls — status varied across identical calls: [200, 503]
+**Stability (candidate)**: `FLAKY_STATUS` over 3 calls: status varied across identical calls: [200, 503]
 
-### FAIL `GQL-001` — GraphQL product query keeps its shape and returns no errors
+### FAIL `GQL-001`: GraphQL product query keeps its shape and returns no errors
 
 `POST /graphql` · requirement REQ-GQL-01 · risk critical
 

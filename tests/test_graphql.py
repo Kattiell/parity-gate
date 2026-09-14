@@ -1,4 +1,4 @@
-"""GraphQL: the two things HTTP gives for free and this protocol does not —
+"""GraphQL: the two things HTTP gives for free and this protocol does not:
 the operation type, and a status code that means anything."""
 
 from __future__ import annotations
@@ -72,8 +72,8 @@ def write(tmp_path: Path, body: str) -> Path:
 
 def test_a_graphql_case_is_a_post_that_reads(tmp_path: Path) -> None:
     """The safety point. Every GraphQL operation is a POST, so leaving the
-    write gate to the method would force every query to be declared a mutation
-    — and a control everyone switches off protects nothing."""
+    write gate to the method would force every query to be declared a mutation,
+    and a control everyone switches off protects nothing."""
     case = load(write(tmp_path, GQL)).cases[0]
     assert case.method == "POST"
     assert case.reads_only is True

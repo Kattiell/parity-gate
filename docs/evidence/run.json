@@ -6,11 +6,11 @@
     "python": "3.13.5",
     "platform": "Windows-11-10.0.26200-SP0"
   },
-  "run_id": "20260912T220414Z-bd26c7",
+  "run_id": "20260914T015634Z-f50c22",
   "mode": "differential",
   "suite": {
     "name": "demo-catalog",
-    "path": "C:\\Users\\Gabriel Caetano\\Downloads\\Claud Code\\parity-gate\\src\\parity_gate\\demo\\demo-catalog.toml",
+    "path": "src\\parity_gate\\demo\\demo-catalog.toml",
     "sha256": "5d54e240332943500a580f133d3deab29981655f395ea789fd713e5fe177e5ff"
   },
   "targets": {
@@ -31,11 +31,12 @@
       "production"
     ],
     "timeout_seconds": 5.0,
+    "max_response_bytes": 10485760,
     "max_retries": 0,
     "workers": 1
   },
-  "started_at": "2026-09-12T22:04:14Z",
-  "finished_at": "2026-09-12T22:04:14Z",
+  "started_at": "2026-09-14T01:56:34Z",
+  "finished_at": "2026-09-14T01:56:34Z",
   "summary": {
     "verdict": "FAIL",
     "cases": 7,
@@ -111,7 +112,7 @@
       }
     ]
   },
-  "chain_head": "64d522b982d93735b981d050f3eeba9e211637724a46467d4c78d61fa6932056",
+  "chain_head": "982e4b827dfb9c69064b85a144056d9b822e74774a5a6d858152e30105a23585",
   "records": [
     {
       "case": {
@@ -231,8 +232,8 @@
             200,
             200
           ],
-          "p50_ms": 0.85,
-          "max_ms": 1.54,
+          "p50_ms": 0.63,
+          "max_ms": 2.0,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -244,8 +245,8 @@
             200,
             200
           ],
-          "p50_ms": 0.54,
-          "max_ms": 0.62,
+          "p50_ms": 0.39,
+          "max_ms": 0.39,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -254,7 +255,7 @@
         "url": "http://127.0.0.1:8799/legacy/products?limit=4",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 1.54,
+        "elapsed_ms": 2.0,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -262,7 +263,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "658",
           "cache-control": "no-store"
@@ -331,7 +332,7 @@
         "url": "http://127.0.0.1:8799/next/products?limit=4",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.62,
+        "elapsed_ms": 0.39,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -339,7 +340,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "780",
           "cache-control": "no-store"
@@ -670,7 +671,7 @@
       },
       "error": null,
       "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
-      "hash": "b9a849b4c85194a50ba0d0455baaabab3752d65f7e90ba4704fdd3b9681436f8"
+      "hash": "ac38edb07250c0ea24596f83a7dc55022594c8c0a15b9cbcd3fe0430f58d1fc0"
     },
     {
       "case": {
@@ -724,8 +725,8 @@
             200,
             200
           ],
-          "p50_ms": 0.34,
-          "max_ms": 0.68,
+          "p50_ms": 0.46,
+          "max_ms": 0.51,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -737,8 +738,8 @@
             200,
             200
           ],
-          "p50_ms": 0.38,
-          "max_ms": 0.38,
+          "p50_ms": 0.27,
+          "max_ms": 0.34,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -747,7 +748,7 @@
         "url": "http://127.0.0.1:8799/legacy/products/1",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.68,
+        "elapsed_ms": 0.44,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -755,7 +756,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "131",
           "cache-control": "no-store"
@@ -778,7 +779,7 @@
         "url": "http://127.0.0.1:8799/next/products/1",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.32,
+        "elapsed_ms": 0.34,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -786,7 +787,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "131",
           "cache-control": "no-store"
@@ -946,8 +947,8 @@
         }
       },
       "error": null,
-      "previous_hash": "b9a849b4c85194a50ba0d0455baaabab3752d65f7e90ba4704fdd3b9681436f8",
-      "hash": "4f1df631dffa20ad6f9e1d0d7460c7c1195a25d1bebdb8b842d8948cc745ff15"
+      "previous_hash": "ac38edb07250c0ea24596f83a7dc55022594c8c0a15b9cbcd3fe0430f58d1fc0",
+      "hash": "29bae005f97213ca69da67d89b7df32fff08737d9dc0f9b12025da6281eafc6a"
     },
     {
       "case": {
@@ -1005,8 +1006,8 @@
             404,
             404
           ],
-          "p50_ms": 0.25,
-          "max_ms": 0.42,
+          "p50_ms": 0.38,
+          "max_ms": 0.4,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1018,8 +1019,8 @@
             200,
             200
           ],
-          "p50_ms": 0.29,
-          "max_ms": 0.29,
+          "p50_ms": 0.49,
+          "max_ms": 0.49,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -1028,7 +1029,7 @@
         "url": "http://127.0.0.1:8799/legacy/products/999",
         "method": "GET",
         "status": 404,
-        "elapsed_ms": 0.42,
+        "elapsed_ms": 0.38,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1036,7 +1037,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "59",
           "cache-control": "no-store"
@@ -1052,7 +1053,7 @@
         "url": "http://127.0.0.1:8799/next/products/999",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.29,
+        "elapsed_ms": 0.49,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1060,7 +1061,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "14",
           "cache-control": "no-store"
@@ -1121,8 +1122,8 @@
         }
       },
       "error": null,
-      "previous_hash": "4f1df631dffa20ad6f9e1d0d7460c7c1195a25d1bebdb8b842d8948cc745ff15",
-      "hash": "4595e5b339abfd14b3611096ccd2386232a830a09d1f6a082aa3215a7c363c18"
+      "previous_hash": "29bae005f97213ca69da67d89b7df32fff08737d9dc0f9b12025da6281eafc6a",
+      "hash": "e656bde9749819714f94eb79d37ef2af98da98275ff1b871a242eb1565a47684"
     },
     {
       "case": {
@@ -1217,8 +1218,8 @@
             200,
             200
           ],
-          "p50_ms": 0.41,
-          "max_ms": 0.42,
+          "p50_ms": 0.45,
+          "max_ms": 0.45,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1230,8 +1231,8 @@
             200,
             200
           ],
-          "p50_ms": 0.4,
-          "max_ms": 0.45,
+          "p50_ms": 0.25,
+          "max_ms": 0.34,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -1240,7 +1241,7 @@
         "url": "http://127.0.0.1:8799/legacy/products?limit=2",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.41,
+        "elapsed_ms": 0.45,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1248,7 +1249,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "402",
           "cache-control": "no-store"
@@ -1294,7 +1295,7 @@
         "url": "http://127.0.0.1:8799/next/products?limit=2",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.36,
+        "elapsed_ms": 0.34,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1302,7 +1303,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "461",
           "cache-control": "no-store"
@@ -1606,8 +1607,8 @@
         }
       },
       "error": null,
-      "previous_hash": "4595e5b339abfd14b3611096ccd2386232a830a09d1f6a082aa3215a7c363c18",
-      "hash": "1fcf8336aa6f3d8aae1bafb32732c363d5fc5a19a126fcd88c9646b65ef2e54d"
+      "previous_hash": "e656bde9749819714f94eb79d37ef2af98da98275ff1b871a242eb1565a47684",
+      "hash": "c85c30b7f05996b36c5b032210ed330146c51afd0e9e1004008d102f66f2b7b2"
     },
     {
       "case": {
@@ -1651,8 +1652,8 @@
             200,
             200
           ],
-          "p50_ms": 0.42,
-          "max_ms": 0.72,
+          "p50_ms": 0.36,
+          "max_ms": 0.59,
           "volatile_paths": [
             "$.uptimeSeconds"
           ],
@@ -1666,8 +1667,8 @@
             200,
             200
           ],
-          "p50_ms": 0.42,
-          "max_ms": 0.57,
+          "p50_ms": 0.29,
+          "max_ms": 0.33,
           "volatile_paths": [
             "$.uptimeSeconds"
           ],
@@ -1678,7 +1679,7 @@
         "url": "http://127.0.0.1:8799/legacy/health",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.72,
+        "elapsed_ms": 0.36,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1686,7 +1687,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "39",
           "cache-control": "no-store"
@@ -1702,7 +1703,7 @@
         "url": "http://127.0.0.1:8799/next/health",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.42,
+        "elapsed_ms": 0.33,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1710,7 +1711,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "39",
           "cache-control": "no-store"
@@ -1779,8 +1780,8 @@
         }
       },
       "error": null,
-      "previous_hash": "1fcf8336aa6f3d8aae1bafb32732c363d5fc5a19a126fcd88c9646b65ef2e54d",
-      "hash": "f8a093e003f10ba64f152bf475b234a06037c63a01e8a0153d0bab907e191f87"
+      "previous_hash": "c85c30b7f05996b36c5b032210ed330146c51afd0e9e1004008d102f66f2b7b2",
+      "hash": "0a5a660c0b120e4268ad15eac2ad5f5a019f939dd83eca82ca313c2e3370b6ed"
     },
     {
       "case": {
@@ -1814,8 +1815,8 @@
             200,
             200
           ],
-          "p50_ms": 0.37,
-          "max_ms": 0.41,
+          "p50_ms": 0.33,
+          "max_ms": 0.33,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1827,8 +1828,8 @@
             503,
             200
           ],
-          "p50_ms": 0.43,
-          "max_ms": 0.49,
+          "p50_ms": 0.21,
+          "max_ms": 0.28,
           "volatile_paths": [],
           "detail": "status varied across identical calls: [200, 503]"
         }
@@ -1837,7 +1838,7 @@
         "url": "http://127.0.0.1:8799/legacy/inventory/sync-status",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.41,
+        "elapsed_ms": 0.33,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1845,7 +1846,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "32",
           "cache-control": "no-store"
@@ -1861,7 +1862,7 @@
         "url": "http://127.0.0.1:8799/next/inventory/sync-status",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.49,
+        "elapsed_ms": 0.28,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1869,7 +1870,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "32",
           "cache-control": "no-store"
@@ -1883,8 +1884,8 @@
       },
       "schema": {},
       "error": "parity comparison skipped: candidate is FLAKY_STATUS across 3 identical calls. Stabilise the endpoint before trusting any diff taken from it.",
-      "previous_hash": "f8a093e003f10ba64f152bf475b234a06037c63a01e8a0153d0bab907e191f87",
-      "hash": "d277d401c762d7a47c9d6a722563ec44e3172c153b3e7f6d9125aeded3068cdc"
+      "previous_hash": "0a5a660c0b120e4268ad15eac2ad5f5a019f939dd83eca82ca313c2e3370b6ed",
+      "hash": "1be6728adcf93dafc22a89d1d85a6a1901864148ac808efacf0bde8070a223b2"
     },
     {
       "case": {
@@ -1960,8 +1961,8 @@
             200,
             200
           ],
-          "p50_ms": 0.48,
-          "max_ms": 0.63,
+          "p50_ms": 0.33,
+          "max_ms": 0.34,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1973,8 +1974,8 @@
             200,
             200
           ],
-          "p50_ms": 0.38,
-          "max_ms": 0.4,
+          "p50_ms": 0.5,
+          "max_ms": 0.51,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -1983,7 +1984,7 @@
         "url": "http://127.0.0.1:8799/legacy/graphql",
         "method": "POST",
         "status": 200,
-        "elapsed_ms": 0.48,
+        "elapsed_ms": 0.32,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1991,7 +1992,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "298",
           "cache-control": "no-store"
@@ -2040,7 +2041,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Sat, 12 Sep 2026 22:04:14 GMT",
+          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
           "content-type": "application/json",
           "content-length": "434",
           "cache-control": "no-store"
@@ -2295,8 +2296,8 @@
         }
       },
       "error": null,
-      "previous_hash": "d277d401c762d7a47c9d6a722563ec44e3172c153b3e7f6d9125aeded3068cdc",
-      "hash": "64d522b982d93735b981d050f3eeba9e211637724a46467d4c78d61fa6932056"
+      "previous_hash": "1be6728adcf93dafc22a89d1d85a6a1901864148ac808efacf0bde8070a223b2",
+      "hash": "982e4b827dfb9c69064b85a144056d9b822e74774a5a6d858152e30105a23585"
     }
   ]
 }

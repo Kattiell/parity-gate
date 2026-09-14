@@ -19,7 +19,7 @@ snapshot = "contracts/example-api.json"
 # --- CHANGE 2: your API -----------------------------------------------------
 [targets.candidate]
 base_url = "https://dummyjson.com"
-# If it needs a credential, name the environment variable — never the value:
+# If it needs a credential, name the environment variable, never the value:
 # auth = "env:MY_API_TOKEN"
 
 [policy]
@@ -40,7 +40,7 @@ timeout_seconds = 15
 max_retries = 0
 
 # Cases run one at a time by default. Raise it only when you know the target can
-# take it — it is somebody's staging environment.
+# take it: it is somebody's staging environment.
 # workers = 4
 
 # Values that move on every call by definition. Run `parity-gate stability`
@@ -88,7 +88,7 @@ path = "/products/999999"
 # anyone having predicted that particular change.
 
 # A denial assertion. Positive checks can never catch a serialiser that starts
-# exposing a column nobody meant to publish — only naming the field can.
+# exposing a column nobody meant to publish. Only naming the field can.
 # [[cases]]
 # id = "SEC-001"
 # requirement = "REQ-SEC-01"

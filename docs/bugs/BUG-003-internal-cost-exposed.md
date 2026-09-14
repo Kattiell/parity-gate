@@ -1,9 +1,9 @@
-# BUG-003 — Internal cost data is exposed on the public catalogue endpoint
+# BUG-003: Internal cost data is exposed on the public catalogue endpoint
 
 | | |
 | --- | --- |
 | **Severity** | Critical |
-| **Priority** | P0 — data exposure, fix before any deploy |
+| **Priority** | P0: data exposure, fix before any deploy |
 | **Requirement** | REQ-SEC-01 (internal cost is never exposed publicly) |
 | **Found by** | `parity-gate` case `SEC-001`, `forbidden_fields` assertion |
 | **Environment** | candidate `/next`, demo catalogue build |
@@ -46,7 +46,7 @@ Reported as a failed `forbidden_field` assertion, plus `FIELD_ADDED` at
 
 The rewrite serialises the ORM entity rather than an explicit view model, so
 every column added to the table becomes a public API field by default. The bug
-is not this one field — it is that the endpoint has no allow-list, so the next
+is not this one field; it is that the endpoint has no allow-list, so the next
 column added will be exposed too, silently.
 
 ## Suggested fix

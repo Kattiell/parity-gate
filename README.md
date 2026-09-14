@@ -2,7 +2,7 @@
 
 **Your API changed. Did it break anyone?**
 
-A CI gate that answers that in seconds, for any JSON API — no second service, no
+A CI gate that answers that in seconds, for any JSON API: no second service, no
 hand-written schema, no golden files to re-record. It records the shape your API
 has today, then fails the build when a deploy changes it in a way existing
 consumers cannot survive.
@@ -40,7 +40,7 @@ failure.
 
 APIs rarely break because a test failed. They break because the shape moved and
 nothing was watching. A field becomes a string, a never-null value comes back
-null, a `404` quietly becomes a `200` — and the consumers find out in
+null, a `404` quietly becomes a `200`, and the consumers find out in
 production. Contract drift is consistently named the top non-bug API failure in
 enterprise systems, and automated detection is what takes time-to-detection from
 weeks down to minutes.
@@ -67,13 +67,13 @@ The common case: one API, real consumers, no rewrite in sight.
 
 ```bash
 cp suites/example-api.toml suites/my-api.toml  # a commented starter suite
-parity-gate record --suite suites/my-api.toml  # once — captures today's shape
+parity-gate record --suite suites/my-api.toml  # once: captures today's shape
 git add suites/my-api.toml suites/contracts/   # review the contract, commit it
 parity-gate run --suite suites/my-api.toml     # every deploy, in CI
 ```
 
 The recorded contract holds **types, requiredness and the status codes each
-endpoint answered with** — never values. That is the whole trick against
+endpoint answered with**, never values. That is the whole trick against
 golden-file rot: your catalogue changes daily, its *shape* does not. A recorded
 contract stays valid until someone actually changes the API, which is exactly
 when you want to hear about it.
@@ -116,7 +116,7 @@ and classifies what varied, so the two get separated:
 | Verdict | Meaning | What to do |
 | --- | --- | --- |
 | `STABLE` | Same status, shape and bytes | Trust anything built on it |
-| `VOLATILE_BODY` | Values move, shape holds | Noisy, not broken — **the exact masks are printed for you** |
+| `VOLATILE_BODY` | Values move, shape holds | Noisy, not broken: **the exact masks are printed for you** |
 | `FLAKY_SHAPE` | The structure itself varies | Fix before writing tests against it |
 | `FLAKY_STATUS` | The status code varies | Fix first; nothing else from this endpoint means anything |
 
@@ -125,7 +125,7 @@ expectations.
 
 ### GraphQL, without lying about what is a read
 
-A GraphQL endpoint is JSON over HTTP, so everything above applies — but two
+A GraphQL endpoint is JSON over HTTP, so everything above applies, but two
 things HTTP gives for free are missing, and both need handling rather than
 ignoring.
 
@@ -144,7 +144,7 @@ off protects nothing. The operation type is read from the document instead: a
 `query` runs as a read, a `mutation` still needs `mutating = true` *and*
 `--allow-mutations`.
 
-**Every response is 200**, including the failures — so the check that catches a
+**Every response is 200**, including the failures, so the check that catches a
 `404` softened into a `200` has nothing to work with here. The equivalent
 signal is the `errors` array, and it is checked explicitly:
 
@@ -172,7 +172,7 @@ parity-gate import-openapi --spec https://api.example.com/openapi.json \
 
 Reads JSON (what FastAPI, Spring and Swagger UI serve live), emits a case per
 safe operation, uses the `example` from each path parameter, and **comments out
-the cases it cannot fill in rather than inventing an id** — a case that fails
+the cases it cannot fill in rather than inventing an id**: a case that fails
 for the wrong reason is worse than one that does not run. Writes are left out
 unless you pass `--include-writes`.
 
@@ -185,12 +185,12 @@ parity-gate run --suite suites/migration.toml   # baseline = old, candidate = ne
 ```
 
 Here it also diffs *values*, because a live baseline is an oracle no hand-written
-expectation can match — it catches the pagination counter that says 3 while
+expectation can match. It catches the pagination counter that says 3 while
 returning 4 items.
 
 ---
 
-## Try it — offline, one second
+## Try it offline, in one second
 
 ```bash
 git clone https://github.com/Kattiell/parity-gate
@@ -200,10 +200,10 @@ pip install -e ".[dev]"
 parity-gate demo --mode contract         # gate against a recorded contract
 parity-gate demo --mode stability        # measure the noise
 parity-gate demo                         # differential, two live services
-pytest -q                                # 224 tests, no network
+pytest -q                                # 225 tests, no network
 ```
 
-All of it runs against a bundled mock that serves a catalogue API twice — once
+All of it runs against a bundled mock that serves a catalogue API twice: once
 as it was, once as rewritten with defects planted on purpose. Nothing leaves the
 machine.
 
@@ -217,7 +217,7 @@ That one compares a live public API **against itself**. It should come back all
 green, and that is the point: it is the control experiment. Whatever it reports
 as volatile is noise you would otherwise have chased.
 
-## Point it at your own API — about five minutes
+## Point it at your own API in about five minutes
 
 The demo proves the tool works. This is the part that makes it yours. There is
 no code to write: the whole configuration is one TOML file.
@@ -240,7 +240,7 @@ parity-gate stability --suite suites/my-api.toml
 It calls each endpoint three times and tells you which ones answer differently
 to identical calls. If it prints a `mask_paths` block, paste it into `[policy]`:
 those are the fields that move on their own, and diffing them is how a gate
-becomes noise. Fix anything reported `FLAKY_STATUS` before going further —
+becomes noise. Fix anything reported `FLAKY_STATUS` before going further:
 nothing measured from an endpoint like that means anything.
 
 **2. Record the shape it has today.**
@@ -268,7 +268,7 @@ Exit code `2` stops a pipeline. In CI:
     MY_API_TOKEN: ${{ secrets.STAGING_TOKEN }}
 ```
 
-**4. When it fails, read `report.md` in the evidence directory** — it names the
+**4. When it fails, read `report.md` in the evidence directory**. It names the
 path, the severity, and what a consumer would experience. If the change was
 intended, re-record and commit the new contract; the diff is the review.
 
@@ -312,7 +312,7 @@ one contract-drift finding, not four value differences. The count of what was
 folded is reported, so nothing vanishes silently.
 
 **An empty collection is "not checked", not "removed".** When today's filter
-matches nothing, the item fields were not deleted — nothing was learned about
+matches nothing, the item fields were not deleted; nothing was learned about
 them. Reporting that as a breaking change is how a gate gets switched off in
 its first week, so those paths are listed separately instead.
 
@@ -349,7 +349,7 @@ parity-gate verify docs/evidence
 ```
 
 Cases carry a `requirement` id, which produces a traceability matrix in every
-report — requirement → cases → worst verdict.
+report: requirement → cases → worst verdict.
 
 ## Writing a suite
 
@@ -400,7 +400,7 @@ A QA tool gets handed credentials and pointed at internal services. Full threat
 model in [SECURITY.md](SECURITY.md); the controls:
 
 - **Host allow-list is mandatory.** No implicit allow-all, and every redirect
-  hop is re-validated — a staging host that 302s to production is not followed.
+  hop is re-validated: a staging host that 302s to production is not followed.
 - **Production is refused by name.** A host containing `prod`/`prd`/`producao`
   needs `--allow-production`, out loud.
 - **Writes are doubly gated.** `POST`/`PUT`/`PATCH`/`DELETE` run only when the
@@ -414,7 +414,7 @@ model in [SECURITY.md](SECURITY.md); the controls:
   misconfigured run makes zero requests.
 - **Credentials never touch the suite file.** A suite containing something
   shaped like a live token is refused, and `parity-gate scan` runs the same
-  check over any path — including in this project's own CI.
+  check over any path, including in this project's own CI.
 - **Everything written to disk is redacted first**: sensitive headers and JSON
   keys, known token shapes, and personal data (e-mail, CPF, CNPJ, card numbers).
   An integration test asserts a token supplied through the environment never
@@ -433,7 +433,7 @@ model in [SECURITY.md](SECURITY.md); the controls:
 | --- | --- |
 | `0` | Passed (warnings allowed unless `--strict`) |
 | `1` | Could not run: bad arguments, malformed suite, missing credential |
-| `2` | **Failed** — breaking drift, value difference, or failed assertion |
+| `2` | **Failed**: breaking drift, value difference, or failed assertion |
 | `3` | Refused by the safety policy, before any request was sent |
 
 ## Commands
@@ -456,13 +456,13 @@ parity-gate mock      [--port 8799]                            # serve the mock 
 | `--filter PATTERN` | run a subset: a glob against a case id or requirement, or a substring of the title. Repeatable. `--filter 'CAT-*'`, `--filter REQ-SEC-01`, `--filter orders` |
 | `--keep N` | keep only the N most recent evidence bundles and delete the rest. Off by default; only directories carrying a manifest are ever touched |
 
-If the `parity-gate` script is not on your `PATH` — common on Windows, where
-`pip` installs it under `Scripts\` — `python -m parity_gate` is the same
+If the `parity-gate` script is not on your `PATH` (common on Windows, where
+`pip` installs it under `Scripts\`), `python -m parity_gate` is the same
 program and takes the same arguments.
 
 ## How it is built
 
-Standard library only. No `requests`, no `pyyaml`, no diff library — a tool that
+Standard library only. No `requests`, no `pyyaml`, no diff library. A tool that
 exists to be trusted about someone else's code should be readable end to end,
 and installing it should pull nothing.
 
@@ -482,35 +482,35 @@ and installing it should pull nothing.
 | `runner.py` | Orchestration and the verdict rules for all three modes |
 | `mock/server.py` | The two-headed demo API, deterministic down to the flaky endpoint |
 
-**224 tests**, unit and integration, offline. [CI](.github/workflows/ci.yml)
+**225 tests**, unit and integration, offline. [CI](.github/workflows/ci.yml)
 runs them on Python 3.11, 3.12 and 3.13, on Linux and Windows, next to lint,
 format, type checking, a credential scan of the repository and a check that the
 committed evidence bundle still verifies; the badge at the top is the honest
 answer to whether it is currently green.
 
 The integration suite boots the mock and asserts that each planted defect is the
-finding that comes out — including two control experiments that must produce
+finding that comes out, including two control experiments that must produce
 nothing: a service compared against itself, and a service checked against its
 own recording.
 
 This has been through an adversarial review whose first instruction was *make it
 report PASS on a change that would break a real consumer*. It found two ways.
-Both are fixed, both now have a regression test, and the write-up —
-including the findings that were **not** fixed — is in
+Both are fixed, both now have a regression test, and the write-up
+(including the findings that were **not** fixed) is in
 [docs/review-2026-09-12.md](docs/review-2026-09-12.md).
 
 ## Documentation
 
-- [Test strategy](docs/test-strategy.md) — risk analysis, scope, oracles and
+- [Test strategy](docs/test-strategy.md): risk analysis, scope, oracles and
   their limits, entry and exit criteria
-- [ADR-001](docs/adr-001-differential-over-golden-files.md) — why not golden
+- [ADR-001](docs/adr-001-differential-over-golden-files.md): why not golden
   files, and why the oracle is a running service
-- [ADR-002](docs/adr-002-record-shape-not-values.md) — why a recorded contract
+- [ADR-002](docs/adr-002-record-shape-not-values.md): why a recorded contract
   holds shape and status but never values, and how that removes the rot
-- [SECURITY.md](SECURITY.md) — threat model and controls
-- [Review findings](docs/review-2026-09-12.md) — an adversarial review, what it
+- [SECURITY.md](SECURITY.md): threat model and controls
+- [Review findings](docs/review-2026-09-12.md): an adversarial review, what it
   broke, what was fixed, and what is still open
-- [Sample evidence bundle](docs/evidence/) — report, machine record, manifest
+- [Sample evidence bundle](docs/evidence/): report, machine record, manifest
 - Bug reports written from real findings:
   [BUG-001](docs/bugs/BUG-001-price-serialised-as-string.md) ·
   [BUG-002](docs/bugs/BUG-002-missing-product-returns-200.md) ·
@@ -523,11 +523,11 @@ out and hard to trust afterwards.
 
 | If you have | Use | Why |
 | --- | --- | --- |
-| A maintained OpenAPI spec and you want the implementation checked against it | **Schemathesis**, **Dredd** | They answer "does the code match the spec". This answers "did the code change" — the spec is not the oracle here, yesterday's behaviour is. `import-openapi` gets you a suite from the spec, and then the two descriptions can be compared |
+| A maintained OpenAPI spec and you want the implementation checked against it | **Schemathesis**, **Dredd** | They answer "does the code match the spec". This answers "did the code change"; the spec is not the oracle here, yesterday's behaviour is. `import-openapi` gets you a suite from the spec, and then the two descriptions can be compared |
 | Consumers who can publish their expectations | **Pact** | Consumer-driven contracts are a stronger guarantee: they encode what each consumer actually uses. They also need every consumer to cooperate and a broker to run. This needs neither, and gives you less |
 | Budget and a team that wants API diffing as a product | **Optic** | Adjacent ground, more mature, commercial. This is a CLI with no dependencies and an evidence trail built for a QA workflow |
 | gRPC or Protobuf | **buf breaking**, **Protolock** | Schema-first by construction; the breaking-change check belongs in the schema toolchain, not here |
-| Long-lived streams — websockets, SSE, GraphQL subscriptions | Something else | Not supported, and a subscription is refused at load time with that reason rather than half-working |
+| Long-lived streams (websockets, SSE, GraphQL subscriptions) | Something else | Not supported, and a subscription is refused at load time with that reason rather than half-working |
 
 Where this earns its place: **one API, real consumers, and no spec anyone
 trusts.** No broker, no code generation, no consumer cooperation, nothing to
@@ -560,6 +560,6 @@ wrong places:
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
 
 Built by [Gabriel Caetano](https://github.com/Kattiell), QA engineer.

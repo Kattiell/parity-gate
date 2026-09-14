@@ -78,7 +78,7 @@ def test_a_collection_that_is_empty_today_is_unchecked_not_broken() -> None:
     """The regression that would have made the gate unusable in production.
 
     The contract was recorded on a day the catalogue had rows. Today the filter
-    matches nothing. Every item field then looks "removed" — five breaking
+    matches nothing. Every item field then looks "removed": five breaking
     findings for a healthy service, on any endpoint that can return an empty
     page, which is most of them.
     """

@@ -627,7 +627,7 @@ def _fold_graphql_errors(drifts: list[Any], case: Case) -> list[Any]:
 
     The dedicated `graphql_errors` check already reports them, and reports them
     correctly. Leaving them in the drift table as well makes the report say two
-    contradictory things about the same fact -- "additive; harmless for
+    contradictory things about the same fact: "additive; harmless for
     consumers that ignore unknown fields" next to a failed assertion about
     exactly that field.
     """

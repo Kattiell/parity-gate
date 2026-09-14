@@ -75,7 +75,7 @@ def parse_path(display: str) -> Path:
     A recorded contract gets committed and reviewed in pull requests, so it
     stores the readable spelling (``$.products[].price``) rather than nested
     arrays of segments. That only works if the spelling round-trips exactly,
-    which is what this does — and what ``test_schema`` pins.
+    which is what this does and what ``test_schema`` pins.
     """
     if not display.startswith("$"):
         raise ValueError(f"path must start with '$': {display!r}")
@@ -298,7 +298,7 @@ def compare(baseline: Schema, candidate: Schema) -> tuple[list[Drift], list[str]
     against, ``candidate`` is what the rewrite now returns.
 
     Returns the findings and, separately, the paths that could not be checked
-    at all because a collection was empty on one side. Those are not findings —
+    at all because a collection was empty on one side. Those are not findings,
     but they are not silence either, because a gate that quietly stops checking
     a subtree gives false confidence.
     """

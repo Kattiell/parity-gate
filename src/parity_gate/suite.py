@@ -361,7 +361,7 @@ def _case(raw: Any, index: int, source: Path) -> Case:
             )
         if raw.get("body") is not None:
             raise SuiteError(
-                f"{where}: set either `graphql` or `body`, not both — the body is built "
+                f"{where}: set either `graphql` or `body`, not both; the body is built "
                 "from the document, the variables and the operation name"
             )
         if graphql.operation_type(str(document)) == graphql.SUBSCRIPTION:

@@ -9,7 +9,7 @@ venv/
 .pytest_cache/
 .ruff_cache/
 
-# Secrets — never commit real credentials
+# Secrets: never commit real credentials
 .env
 .env.*
 !.env.example

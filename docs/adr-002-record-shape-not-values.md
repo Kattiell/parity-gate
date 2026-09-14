@@ -19,7 +19,7 @@ inheriting the decay ADR-001 correctly refused?
 
 ## Decision
 
-Record a contract from the live API — and store only **types, requiredness and
+Record a contract from the live API, and store only **types, requiredness and
 the status codes each endpoint answered with**. Never values.
 
 ```json
@@ -33,7 +33,7 @@ The file is committed. Every later run compares the live API against it.
 ADR-001's objection to golden files was specific: a fixture recorded in March
 fails in June because a category was renamed or a `total` legitimately grew. The
 failure is real and uninteresting, it happens constantly, and the cure people
-reach for — re-record without reading the diff — turns the suite into a rubber
+reach for (re-record without reading the diff) turns the suite into a rubber
 stamp.
 
 Every one of those failures comes from recording **data**. Data changes hourly
@@ -62,7 +62,7 @@ falsified it: a collection that is *empty* on the day the gate runs makes every
 item field look removed, so a healthy service with no matching rows failed the
 build with five breaking findings.
 
-Shape does not rot with data — but shape cannot be *observed* through an empty
+Shape does not rot with data, but shape cannot be *observed* through an empty
 collection either. The fix is to treat that subtree as unobserved rather than
 absent, and to report those paths as "not checked" so the gap is visible rather
 than either alarming or silent. See
@@ -71,8 +71,8 @@ than either alarming or silent. See
 ## Recording status codes as part of the contract
 
 The recording keeps which statuses each endpoint answered with. This is what
-catches the "tolerant handler" class of regression — a `404` softened into a
-`200` with an empty body — on a case where nobody wrote `expect_status`,
+catches the "tolerant handler" class of regression (a `404` softened into a
+`200` with an empty body) on a case where nobody wrote `expect_status`,
 because nobody predicted that particular change.
 
 It costs one integer per case and it is the single highest-value thing in the

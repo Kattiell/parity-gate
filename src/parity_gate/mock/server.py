@@ -6,7 +6,7 @@ survive code review in a migration, not obvious ones:
 * ``price`` is serialised as a string by the new serialiser.
 * ``stock`` was dropped because "the front end reads availability now".
 * ``discount`` can come back ``null`` for one product.
-* ``warehouseId`` and ``internalCost`` are new -- one harmless, one an
+* ``warehouseId`` and ``internalCost`` are new: one harmless, one an
   information leak nobody asked for.
 * ``total`` disagrees with the number of items returned: the pagination rewrite
   counts differently.
@@ -163,7 +163,7 @@ class _Handler(BaseHTTPRequestHandler):
         if segments[0] == LEGACY:
             return self._send(200, {"data": {"products": products}})
 
-        # The rewrite, with the same defects the REST side has -- plus the one
+        # The rewrite, with the same defects the REST side has, plus the one
         # that only GraphQL can have: a 200 carrying partial data and an error.
         return self._send(
             200,

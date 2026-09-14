@@ -72,7 +72,7 @@ def render_markdown(run: Run) -> str:
         add("")
     for record in actionable:
         case = record.case
-        add(f"### {VERDICT_ICON.get(record.verdict)} `{case['id']}` — {case['title']}")
+        add(f"### {VERDICT_ICON.get(record.verdict)} `{case['id']}`: {case['title']}")
         add("")
         add(
             f"`{case['method']} {case['path']}` "
@@ -127,7 +127,7 @@ def render_markdown(run: Run) -> str:
 
         if record.unchecked_paths:
             add(
-                f"**Not checked** — {len(record.unchecked_paths)} path(s) could not be "
+                f"**Not checked:** {len(record.unchecked_paths)} path(s) could not be "
                 "compared because a collection was empty in every sample. Nothing is wrong "
                 "with them; nothing is confirmed about them either."
             )
@@ -141,7 +141,7 @@ def render_markdown(run: Run) -> str:
         for label, stability in _stability_blocks(record):
             add(
                 f"**Stability ({label})**: `{stability['verdict']}` over "
-                f"{stability['repeats']} calls — {stability['detail']}"
+                f"{stability['repeats']} calls: {stability['detail']}"
             )
             add("")
             if stability.get("volatile_paths"):
@@ -190,7 +190,7 @@ def render_html(run: Run) -> str:
             f"""<tr class="v-{record.verdict.lower()}">
   <td><span class="badge {record.verdict.lower()}">{record.verdict}</span></td>
   <td><code>{_e(case["id"])}</code><div class="muted">{_e(case["title"])}</div></td>
-  <td>{_e(case.get("requirement") or "—")}</td>
+  <td>{_e(case.get("requirement") or "-")}</td>
   <td>{_e(case.get("risk"))}</td>
   <td>{len(record.drifts)}{f" <b>({breaking} breaking)</b>" if breaking else ""}</td>
   <td>{len(record.differences)}</td>
@@ -201,7 +201,7 @@ def render_html(run: Run) -> str:
 
     verdict = summary["verdict"]
     return _HTML_TEMPLATE.format(
-        title=_e(f"parity-gate — {run.suite_name}"),
+        title=_e(f"parity-gate: {run.suite_name}"),
         suite=_e(run.suite_name),
         verdict=_e(verdict),
         verdict_class=verdict.lower(),
@@ -227,9 +227,7 @@ def _html_details(record: Any) -> str:
 
     failed = [c for c in record.checks if not c["passed"]]
     if failed:
-        items = "".join(
-            f"<li><code>{_e(c['name'])}</code> &mdash; {_e(c['detail'])}</li>" for c in failed
-        )
+        items = "".join(f"<li><code>{_e(c['name'])}</code>: {_e(c['detail'])}</li>" for c in failed)
         blocks.append(f"<h4>Failed assertions</h4><ul>{items}</ul>")
 
     if record.drifts:
@@ -286,7 +284,7 @@ def _html_details(record: Any) -> str:
             listed = ",\n  ".join(f'"{_e(p)}"' for p in stability["volatile_paths"][:12])
             suggestion = f"<pre>mask_paths = [\n  {listed}\n]</pre>"
         blocks.append(
-            f"<h4>Stability &mdash; {_e(label)}</h4><p><code>{_e(stability['verdict'])}</code>"
+            f"<h4>Stability, {_e(label)}</h4><p><code>{_e(stability['verdict'])}</code>"
             f" over {stability['repeats']} calls: {_e(stability['detail'])}</p>{suggestion}"
         )
 

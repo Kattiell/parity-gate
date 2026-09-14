@@ -1,7 +1,7 @@
 """Flakiness triage: separate "the test is broken" from "the payload is noisy".
 
 Timing and test data cause the large majority of flaky failures, and both show
-up the same way in a report -- a diff that was green a minute ago. Calling the
+up the same way in a report, as a diff that was green a minute ago. Calling the
 same endpoint N times and classifying what varied tells you which one you have:
 
 ``STABLE``

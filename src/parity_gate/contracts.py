@@ -6,7 +6,7 @@ know whether today's deploy broke the shape yesterday's consumers were built
 against. That is what a recorded contract is for: run ``parity-gate record``
 once, commit the file, and every later run is gated against it.
 
-A contract stores **shape, not values** — types, requiredness and the status
+A contract stores **shape, not values**: types, requiredness and the status
 codes an endpoint answered with. Values are deliberately left out: a recorded
 value goes stale the moment the catalogue changes, and a suite that fails
 because a product was renamed is a suite people learn to re-record without

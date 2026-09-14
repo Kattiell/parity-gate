@@ -5,7 +5,7 @@ a record, every record is hashed together with the hash of the one before it,
 and the chain head is written to a manifest. Editing a result after the fact
 breaks the chain, and ``parity-gate verify`` says exactly where.
 
-This is not cryptographic proof of honesty -- whoever can edit the records can
+This is not cryptographic proof of honesty: whoever can edit the records can
 recompute the chain. It is proof of *accidental* alteration: a truncated
 upload, a partially synced artifact, a report edited by hand before being
 pasted into a ticket. Those are the realistic failure modes of test evidence,

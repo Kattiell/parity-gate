@@ -17,22 +17,22 @@ The tool serves three, and they share most of this document:
 What follows is written for the third, because it is the strictest: it is the
 only one where *values* are compared, so it has the most to say about oracles
 and noise. Everything about risk, scope and exit criteria applies unchanged to
-the other two — the recorded-contract mode simply drops the value-comparison
+the other two. The recorded-contract mode simply drops the value-comparison
 rows and gains one guarantee, that the shape and status codes cannot move
 without the build saying so.
 
 ## Context
 
 A catalogue API is being replaced. The old service still runs and still serves
-traffic; the new one is meant to be a drop-in replacement. Several consumers —
-a storefront, a mobile app, a partner integration — were written against the old
+traffic; the new one is meant to be a drop-in replacement. Several consumers
+(a storefront, a mobile app, a partner integration) were written against the old
 responses and cannot be redeployed in lockstep.
 
 The question the release needs answered is narrow and testable:
 
 > Can every existing consumer read what the new service returns?
 
-Not "is the new service correct" — that is the developers' test suite. This is
+Not "is the new service correct": that is the developers' test suite. This is
 about the boundary.
 
 ## What is in scope
@@ -51,14 +51,14 @@ Risk drives which cases exist and which are marked `critical`.
 
 | # | Risk | Likelihood | Impact | Cases |
 | --- | --- | --- | --- | --- |
-| R1 | Serialiser changes a field's type (money as a string is the classic) | High | Critical — clients crash or silently mis-parse | CAT-001 |
-| R2 | A field consumers depend on is dropped as "unused" | High | Critical — feature disappears in one client, unnoticed in the others | CAT-001 |
-| R3 | A never-null field starts returning null | Medium | Critical — null-pointer crashes in typed clients | CAT-001 |
-| R4 | Pagination metadata disagrees with the page | Medium | High — infinite scroll loops, wrong counts | CAT-001 |
-| R5 | Error semantics soften: 404 becomes an empty 200 | Medium | High — clients cache nothing as something | CAT-003 |
-| R6 | Internal data is exposed by a broader serialiser | Low | Critical — margin data leaks to the public catalogue | SEC-001 |
-| R7 | An endpoint is intermittently unavailable | Medium | Medium — plus it invalidates every comparison taken from it | OPS-002 |
-| R8 | An endpoint is compared while it legitimately changes on every call | High | Low directly, high indirectly — false alarms train people to ignore the gate | OPS-001 |
+| R1 | Serialiser changes a field's type (money as a string is the classic) | High | Critical: clients crash or silently mis-parse | CAT-001 |
+| R2 | A field consumers depend on is dropped as "unused" | High | Critical: feature disappears in one client, unnoticed in the others | CAT-001 |
+| R3 | A never-null field starts returning null | Medium | Critical: null-pointer crashes in typed clients | CAT-001 |
+| R4 | Pagination metadata disagrees with the page | Medium | High: infinite scroll loops, wrong counts | CAT-001 |
+| R5 | Error semantics soften: 404 becomes an empty 200 | Medium | High: clients cache nothing as something | CAT-003 |
+| R6 | Internal data is exposed by a broader serialiser | Low | Critical: margin data leaks to the public catalogue | SEC-001 |
+| R7 | An endpoint is intermittently unavailable | Medium | Medium, plus it invalidates every comparison taken from it | OPS-002 |
+| R8 | An endpoint is compared while it legitimately changes on every call | High | Low directly, high indirectly: false alarms train people to ignore the gate | OPS-001 |
 
 R8 is the one usually left out of strategies, and it is the reason most
 comparison harnesses get switched off within a quarter.
@@ -67,7 +67,7 @@ comparison harnesses get switched off within a quarter.
 
 Each case comes from one technique, chosen for the risk:
 
-- **Contract inference over repeated samples** (R1–R3). Optionality cannot be
+- **Contract inference over repeated samples** (R1 to R3). Optionality cannot be
   observed from a single response: "absent this time" and "optional" look the
   same. Every endpoint is sampled three times before its contract is inferred.
 - **Differential testing** (R4). The oracle is the old service. No expected

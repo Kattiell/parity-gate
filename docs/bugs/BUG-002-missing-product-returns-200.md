@@ -1,9 +1,9 @@
-# BUG-002 — A missing product answers `200 {"data": null}` instead of `404`
+# BUG-002: A missing product answers `200 {"data": null}` instead of `404`
 
 | | |
 | --- | --- |
 | **Severity** | High |
-| **Priority** | P1 — blocks the migration |
+| **Priority** | P1, blocks the migration |
 | **Requirement** | REQ-CAT-03 (unknown ids still answer 404) |
 | **Found by** | `parity-gate` case `CAT-003`, status assertion + contract drift |
 | **Environment** | candidate `/next` vs baseline `/legacy`, demo catalogue build |
@@ -52,8 +52,8 @@ Reported as a failed `status` assertion (`expected [404], got 200`) plus
 ## Analysis
 
 The new handler catches the lookup miss and returns an envelope rather than
-letting it become a status. It reads as defensive — "don't throw on a missing
-record" — but HTTP already has the vocabulary, and replacing a status with a
+letting it become a status. It reads as defensive ("don't throw on a missing
+record"), but HTTP already has the vocabulary, and replacing a status with a
 body moves the decision to a place no client is looking.
 
 ## Suggested fix
