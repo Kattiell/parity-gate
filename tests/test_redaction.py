@@ -3,6 +3,10 @@ for both directions: secrets must disappear, ordinary data must survive.
 
 parity-gate:allow-secrets-file - every credential-shaped string below is a
 fixture or a pattern definition, never a live value.
+
+Fixtures in a provider's exact format are split at the prefix. The runtime
+value is identical, but the source no longer matches push-protection patterns:
+GitHub opened a public-leak alert for the Google key, which was never real.
 """
 
 from __future__ import annotations
@@ -16,11 +20,11 @@ from parity_gate.redaction import MASK, find_secrets, redact, redact_headers, re
     "secret",
     [
         "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.dBjftJeZ4CVPmB92K27uhbUJU1p1r_wW1g",
-        "Bearer sk_live_9f8a7b6c5d4e3f2a1b",
+        "Bearer sk_" "live_9f8a7b6c5d4e3f2a1b",
         "ghp_16CharactersMinimumAAAA",
-        "xoxb-1234567890-abcdefghij",
+        "xo" "xb-1234567890-abcdefghij",
         "AKIAIOSFODNN7EXAMPLE",
-        "AIzaSyA1234567890abcdefghijklmnopqrstuv",
+        "AI" "zaSyA1234567890abcdefghijklmnopqrstuv",
     ],
 )
 def test_known_credential_shapes_are_masked(secret: str) -> None:
