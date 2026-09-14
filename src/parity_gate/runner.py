@@ -167,6 +167,7 @@ class Runner:
             recorded_at=contracts.now(),
             note="Shape only: types, requiredness and observed statuses. No values.",
         )
+
         def probe_one(case: Case) -> Probe:
             probe = self._probe(self.suite.candidate, case)
             if probe.first is None or probe.first.transport_error:
@@ -202,11 +203,11 @@ class Runner:
             record = Record(case=case.to_dict(), verdict=PASS)
             try:
                 check_method(
-                case.method,
-                mutating=case.mutating,
-                policy=self.suite.policy,
-                reads_only=case.reads_only,
-            )
+                    case.method,
+                    mutating=case.mutating,
+                    policy=self.suite.policy,
+                    reads_only=case.reads_only,
+                )
                 probe = self._probe(self.suite.candidate, case)
             except SafetyError as exc:
                 record.verdict = ERROR
@@ -422,9 +423,7 @@ class Runner:
 
         for _ in range(self.suite.repeats_for(case)):
             probe.responses.append(
-                self.client.request(
-                    case.method, url, headers=headers, body=case.request_body()
-                )
+                self.client.request(case.method, url, headers=headers, body=case.request_body())
             )
 
         payloads = [r.json_body for r in probe.responses]

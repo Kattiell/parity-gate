@@ -71,7 +71,7 @@ def test_a_path_parameter_with_no_example_is_commented_out_not_guessed() -> None
     reason, which is worse than a case that does not run."""
     text = render()
     assert "# TODO: no example for path parameter(s) orderId" in text
-    assert "# path = \"/orders/{orderId}\"" in text
+    assert '# path = "/orders/{orderId}"' in text
     live = [line for line in text.splitlines() if not line.startswith("#")]
     assert not any("{orderId}" in line for line in live)
 
@@ -86,9 +86,7 @@ def test_tags_become_requirements_so_the_matrix_is_populated() -> None:
 
 
 def test_the_base_url_can_be_overridden() -> None:
-    assert 'base_url = "https://api.test.internal"' in render(
-        base_url="https://api.test.internal/"
-    )
+    assert 'base_url = "https://api.test.internal"' in render(base_url="https://api.test.internal/")
 
 
 def test_a_swagger_2_document_still_yields_a_base_url() -> None:
@@ -133,6 +131,6 @@ def test_the_cli_writes_a_file_and_refuses_to_clobber_one(tmp_path: Path) -> Non
     assert main(["import-openapi", "--spec", str(spec_file), "--out", str(out)]) == EXIT_OK
     assert out.is_file()
     assert main(["import-openapi", "--spec", str(spec_file), "--out", str(out)]) == EXIT_USAGE
-    assert main(
-        ["import-openapi", "--spec", str(spec_file), "--out", str(out), "--force"]
-    ) == EXIT_OK
+    assert (
+        main(["import-openapi", "--spec", str(spec_file), "--out", str(out), "--force"]) == EXIT_OK
+    )

@@ -112,9 +112,7 @@ def _example_for(parameter: dict[str, Any]) -> Any:
     return None
 
 
-def _fill_path(
-    path: str, parameters: list[dict[str, Any]]
-) -> tuple[str, list[str]]:
+def _fill_path(path: str, parameters: list[dict[str, Any]]) -> tuple[str, list[str]]:
     """Substitute path parameters. Returns the path and what could not be filled."""
     by_name = {str(p.get("name")): p for p in parameters if p.get("in") == "path"}
     missing: list[str] = []

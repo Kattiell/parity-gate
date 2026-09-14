@@ -213,7 +213,7 @@ def load(path: str | Path) -> Suite:
         raise SuiteError(
             "refusing to run: the suite file contains what looks like a live credential.\n  "
             + "\n  ".join(leaks)
-            + "\nMove it to an environment variable and reference it as auth = \"env:NAME\"."
+            + '\nMove it to an environment variable and reference it as auth = "env:NAME".'
             + "\nIf it was ever committed, rotate it: git history keeps it forever."
         )
 
@@ -231,9 +231,7 @@ def _build(data: dict[str, Any], source: Path) -> Suite:
 
     targets = data.get("targets")
     if not isinstance(targets, dict) or "baseline" not in targets or "candidate" not in targets:
-        raise SuiteError(
-            f"{source}: [targets.baseline] and [targets.candidate] are both required"
-        )
+        raise SuiteError(f"{source}: [targets.baseline] and [targets.candidate] are both required")
 
     baseline = _target("baseline", targets["baseline"], source)
     candidate = _target("candidate", targets["candidate"], source)
@@ -316,7 +314,7 @@ def _target(name: str, raw: Any, source: Path) -> Target:
     if auth is not None:
         if not isinstance(auth, str) or not auth.startswith("env:"):
             raise SuiteError(
-                f"{source}: targets.{name}.auth must look like \"env:VARIABLE_NAME\". "
+                f'{source}: targets.{name}.auth must look like "env:VARIABLE_NAME". '
                 "Credentials are never stored in the suite itself."
             )
         auth_env = auth[4:].strip()

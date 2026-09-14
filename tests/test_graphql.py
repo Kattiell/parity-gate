@@ -14,9 +14,9 @@ from parity_gate.suite import SuiteError, load
 @pytest.mark.parametrize(
     ("document", "expected"),
     [
-        ("{ products { id } }", "query"),              # anonymous shorthand
+        ("{ products { id } }", "query"),  # anonymous shorthand
         ("  \n query Q { a }", "query"),
-        ("QUERY Q { a }", "query"),                    # case-insensitive
+        ("QUERY Q { a }", "query"),  # case-insensitive
         ("mutation M { b }", "mutation"),
         ("subscription S { c }", "subscription"),
         ("# a comment\nquery { a }", "query"),

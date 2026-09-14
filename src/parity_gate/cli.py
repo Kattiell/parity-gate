@@ -88,16 +88,12 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="permit hosts that look like production; say it out loud or it will not happen",
     )
-    run.add_argument(
-        "--filter", action="append", default=[], metavar="PATTERN", help=_FILTER_HELP
-    )
+    run.add_argument("--filter", action="append", default=[], metavar="PATTERN", help=_FILTER_HELP)
     run.add_argument("--keep", type=int, default=None, metavar="N", help=_KEEP_HELP)
     run.add_argument("--quiet", action="store_true", help="only print the final summary")
     run.set_defaults(handler=_cmd_run)
 
-    demo = sub.add_parser(
-        "demo", help="run a bundled offline demo against the bundled mock API"
-    )
+    demo = sub.add_parser("demo", help="run a bundled offline demo against the bundled mock API")
     demo.add_argument(
         "--mode",
         choices=["differential", "contract", "stability"],
@@ -268,7 +264,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
     finally:
         _stop_mock(server)
 
-    bundle = _write_bundle(run, Path(args.evidence), getattr(args, 'keep', None))
+    bundle = _write_bundle(run, Path(args.evidence), getattr(args, "keep", None))
 
     summary = run.to_dict()["summary"]
     print()
@@ -451,7 +447,7 @@ def _cmd_stability(args: argparse.Namespace) -> int:
     finally:
         _stop_mock(server)
 
-    bundle = _write_bundle(run, Path(args.evidence), getattr(args, 'keep', None))
+    bundle = _write_bundle(run, Path(args.evidence), getattr(args, "keep", None))
     suggestions = _mask_suggestions(run)
     summary = run.to_dict()["summary"]
 

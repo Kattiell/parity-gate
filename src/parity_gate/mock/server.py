@@ -105,6 +105,8 @@ class MockServer(ThreadingHTTPServer):
     @property
     def base_url(self) -> str:
         host, port = self.server_address[0], self.server_address[1]
+        if isinstance(host, bytes | bytearray):
+            host = host.decode()
         return f"http://{host}:{port}"
 
 
@@ -137,7 +139,7 @@ class _Handler(BaseHTTPRequestHandler):
     server_version = "parity-gate-mock"
 
     # Keep test output readable; the harness records what it needs itself.
-    def log_message(self, fmt: str, *args: Any) -> None:
+    def log_message(self, format: str, *args: Any) -> None:
         return
 
     def do_POST(self) -> None:

@@ -66,9 +66,7 @@ def render_markdown(run: Run) -> str:
         )
     add("")
 
-    actionable = [
-        r for r in run.records if r.verdict in {FAIL, ERROR, WARN} or r.unchecked_paths
-    ]
+    actionable = [r for r in run.records if r.verdict in {FAIL, ERROR, WARN} or r.unchecked_paths]
     if actionable:
         add("## Findings")
         add("")
@@ -191,10 +189,10 @@ def render_html(run: Run) -> str:
         rows.append(
             f"""<tr class="v-{record.verdict.lower()}">
   <td><span class="badge {record.verdict.lower()}">{record.verdict}</span></td>
-  <td><code>{_e(case['id'])}</code><div class="muted">{_e(case['title'])}</div></td>
-  <td>{_e(case.get('requirement') or '—')}</td>
-  <td>{_e(case.get('risk'))}</td>
-  <td>{len(record.drifts)}{f' <b>({breaking} breaking)</b>' if breaking else ''}</td>
+  <td><code>{_e(case["id"])}</code><div class="muted">{_e(case["title"])}</div></td>
+  <td>{_e(case.get("requirement") or "—")}</td>
+  <td>{_e(case.get("risk"))}</td>
+  <td>{len(record.drifts)}{f" <b>({breaking} breaking)</b>" if breaking else ""}</td>
   <td>{len(record.differences)}</td>
   <td>{_e(stability)}</td>
 </tr>
@@ -236,13 +234,13 @@ def _html_details(record: Any) -> str:
 
     if record.drifts:
         body = "".join(
-            f"<tr><td><span class=\"sev {_e(d['severity'])}\">{_e(d['severity'])}</span></td>"
+            f'<tr><td><span class="sev {_e(d["severity"])}">{_e(d["severity"])}</span></td>'
             f"<td><code>{_e(d['kind'])}</code></td><td><code>{_e(d['path'])}</code></td>"
             f"<td>{_e(d['detail'])}</td></tr>"
             for d in sorted(record.drifts, key=lambda d: SEVERITY_ORDER.get(d["severity"], 9))
         )
         blocks.append(
-            "<h4>Contract drift</h4><table class=\"inner\"><thead><tr>"
+            '<h4>Contract drift</h4><table class="inner"><thead><tr>'
             "<th>Severity</th><th>Kind</th><th>Path</th><th>Detail</th>"
             f"</tr></thead><tbody>{body}</tbody></table>"
         )
@@ -277,7 +275,7 @@ def _html_details(record: Any) -> str:
             else ""
         )
         blocks.append(
-            "<h4>Not checked</h4><p class=\"muted\">A collection was empty in every sample, "
+            '<h4>Not checked</h4><p class="muted">A collection was empty in every sample, '
             "so nothing could be learned about these paths. Not a finding, not a "
             f"confirmation.</p><ul>{items}{extra}</ul>"
         )
@@ -322,7 +320,7 @@ def _html_matrix(run: Run) -> str:
         worst = max(entries, key=lambda e: _rank(e["verdict"]))["verdict"]
         cases = ", ".join(f"<code>{_e(e['case'])}</code>" for e in entries)
         rows.append(
-            f'<tr><td>{_e(requirement)}</td><td>{cases}</td>'
+            f"<tr><td>{_e(requirement)}</td><td>{cases}</td>"
             f'<td><span class="badge {worst.lower()}">{_e(worst)}</span></td></tr>'
         )
     return "\n".join(rows)

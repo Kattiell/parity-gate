@@ -100,7 +100,7 @@ def check_url(url: str, policy: Policy) -> None:
     if parts.username or parts.password:
         raise SafetyError(
             "credentials embedded in the URL are not allowed; "
-            "reference an environment variable with auth = \"env:NAME\" instead"
+            'reference an environment variable with auth = "env:NAME" instead'
         )
 
     host = (parts.hostname or "").lower()
@@ -128,9 +128,7 @@ def check_url(url: str, policy: Policy) -> None:
         )
 
 
-def check_method(
-    method: str, *, mutating: bool, policy: Policy, reads_only: bool = False
-) -> None:
+def check_method(method: str, *, mutating: bool, policy: Policy, reads_only: bool = False) -> None:
     """Refuse a write unless both the case and the run opted in.
 
     ``reads_only`` exists for GraphQL, where every operation is a POST and the
