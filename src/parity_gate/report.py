@@ -90,7 +90,7 @@ def render_markdown(run: Run) -> str:
             add("**Failed assertions**")
             add("")
             for check in failed:
-                add(f"- `{check['name']}`: {check['detail']}")
+                add(f"- `{_rule(check)}{check['name']}`: {check['detail']}")
             add("")
 
         if record.drifts:
@@ -100,7 +100,7 @@ def render_markdown(run: Run) -> str:
             add("| --- | --- | --- | --- |")
             for drift in sorted(record.drifts, key=lambda d: SEVERITY_ORDER.get(d["severity"], 9)):
                 add(
-                    f"| {drift['severity']} | `{drift['kind']}` | `{drift['path']}` "
+                    f"| {drift['severity']} | `{_rule(drift)}{drift['kind']}` | `{drift['path']}` "
                     f"| {drift['detail']} |"
                 )
             add("")
@@ -112,7 +112,7 @@ def render_markdown(run: Run) -> str:
             add("| --- | --- | --- | --- |")
             for difference in record.differences[:25]:
                 add(
-                    f"| `{difference['kind']}` | `{difference['path']}` "
+                    f"| `{_rule(difference)}{difference['kind']}` | `{difference['path']}` "
                     f"| `{_short(difference['baseline'])}` | `{_short(difference['candidate'])}` |"
                 )
             if len(record.differences) > 25:
@@ -227,13 +227,16 @@ def _html_details(record: Any) -> str:
 
     failed = [c for c in record.checks if not c["passed"]]
     if failed:
-        items = "".join(f"<li><code>{_e(c['name'])}</code>: {_e(c['detail'])}</li>" for c in failed)
+        items = "".join(
+            f"<li><code>{_e(_rule(c))}{_e(c['name'])}</code>: {_e(c['detail'])}</li>"
+            for c in failed
+        )
         blocks.append(f"<h4>Failed assertions</h4><ul>{items}</ul>")
 
     if record.drifts:
         body = "".join(
             f'<tr><td><span class="sev {_e(d["severity"])}">{_e(d["severity"])}</span></td>'
-            f"<td><code>{_e(d['kind'])}</code></td><td><code>{_e(d['path'])}</code></td>"
+            f"<td><code>{_e(_rule(d))}{_e(d['kind'])}</code></td><td><code>{_e(d['path'])}</code></td>"
             f"<td>{_e(d['detail'])}</td></tr>"
             for d in sorted(record.drifts, key=lambda d: SEVERITY_ORDER.get(d["severity"], 9))
         )
@@ -247,7 +250,7 @@ def _html_details(record: Any) -> str:
         table = ""
         if record.differences:
             body = "".join(
-                f"<tr><td><code>{_e(d['kind'])}</code></td><td><code>{_e(d['path'])}</code></td>"
+                f"<tr><td><code>{_e(_rule(d))}{_e(d['kind'])}</code></td><td><code>{_e(d['path'])}</code></td>"
                 f"<td><code>{_e(_short(d['baseline']))}</code></td>"
                 f"<td><code>{_e(_short(d['candidate']))}</code></td></tr>"
                 for d in record.differences[:25]
@@ -326,6 +329,11 @@ def _html_matrix(run: Run) -> str:
 
 def _rank(verdict: str) -> int:
     return {PASS: 0, SKIPPED: 1, WARN: 2, FAIL: 3, ERROR: 4}.get(verdict, 0)
+
+
+def _rule(finding: dict[str, Any]) -> str:
+    """``PG1004 `` for a finding that carries a rule id, nothing for one that does not."""
+    return f"{finding['rule']} " if finding.get("rule") else ""
 
 
 def _short(value: Any, limit: int = 80) -> str:

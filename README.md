@@ -200,7 +200,7 @@ pip install -e ".[dev]"
 parity-gate demo --mode contract         # gate against a recorded contract
 parity-gate demo --mode stability        # measure the noise
 parity-gate demo                         # differential, two live services
-pytest -q                                # 225 tests, no network
+pytest -q                                # 250 tests, no network
 ```
 
 All of it runs against a bundled mock that serves a catalogue API twice: once
@@ -338,6 +338,7 @@ Every run writes a bundle:
 | `report.md` | For the ticket |
 | [`report.html`](docs/evidence/report.html) | Self-contained, light/dark, for the CI artifact |
 | `run.json` | Every finding, every redacted exchange, both inferred schemas |
+| `report.sarif` | SARIF 2.1.0: each finding as a code-scanning alert on the contract line or suite case it is about |
 | `manifest.json` | SHA-256 per file plus the chain head |
 
 Each record is hashed together with the hash of the record before it, so a
@@ -350,6 +351,57 @@ parity-gate verify docs/evidence
 
 Cases carry a `requirement` id, which produces a traceability matrix in every
 report: requirement → cases → worst verdict.
+
+Every finding carries a stable rule id (`PG1004` is a type change, `PG3006` a
+forbidden field) from the [rule catalogue](docs/rules.md). Ids are never
+renumbered, so anything keyed on them keeps working across versions.
+
+## Measuring the gate itself
+
+A gate is trusted for what it has been shown to catch, so it is measured the
+way any detector is: inject a fixed fault model into real responses, count
+what it catches, and count how often it cries wolf.
+
+```
+$ parity-gate selftest --demo
+
+  fault (must fail)     mode           injected  caught  missed
+  TYPE_SWAP             differential         40      40       0
+  NULL_INJECT           contract             40      40       0
+  STATUS_CHANGE         contract              7       7       0
+  ...
+  control (must not)    mode           injected    fine  alarms
+  VALUE_CHANGE          contract             40      40       0
+  COLLECTION_EMPTY      contract              7       7       0
+  ...
+
+differential  detection 100.0% (187/187)   false alarms   0.0% (0/20)
+contract      detection 100.0% (137/137)   false alarms   0.0% (0/70)
+```
+
+| Faults: the case must fail | Controls: the case must not fail |
+| --- | --- |
+| A value changes JSON type | A value changes in contract mode (shape only) |
+| A value becomes null | A collection loses an item, or comes back empty, in contract mode |
+| An always-present field is missing | A collection comes back in another order |
+| The status code changes | A new field appears |
+| A value changes, an item is dropped or a page is empty, in differential mode | A value under a mask path changes |
+
+Each fault is applied at one site (the first occurrence of each path, because
+"one row of the page is wrong" is how these defects ship), and every mutant
+goes through the same judging functions a real run uses rather than a copy
+of their rules. The controls are what keep the number honest: a gate that
+failed every change would score 100% detection and be switched off in a week.
+
+Its first run found a real false negative. One product of four whose `price`
+came back as a string made the field's types the union `number | string`,
+which was classified as a *risky widening* and passed with a warning. The
+consumer parsing that product fails all the same; it is now `breaking`.
+
+Against your own API, `parity-gate selftest --suite suites/my-api.toml` samples
+each case once, read-only and under the same safety policy, and exits `2` when
+detection drops below `--min-detection` (default 100%) or false alarms rise
+above `--max-false-alarms` (default 0%).
 
 ## Writing a suite
 
@@ -424,10 +476,21 @@ model in [SECURITY.md](SECURITY.md); the controls:
 
 ```yaml
 - name: API contract gate
-  run: parity-gate run --suite suites/api.toml --strict
+  run: parity-gate run --suite suites/api.toml --strict --sarif parity-gate.sarif
   env:
     PARITY_TOKEN: ${{ secrets.STAGING_TOKEN }}
+
+- name: Findings as pull-request annotations
+  if: always()
+  uses: github/codeql-action/upload-sarif@v4
+  with:
+    sarif_file: parity-gate.sarif
+    category: parity-gate
 ```
+
+The upload step needs `permissions: security-events: write`. Code scanning is
+available on public repositories; private ones need GitHub Code Security. The
+same file opens in any SARIF viewer, so the annotations do not depend on it.
 
 | Exit code | Meaning |
 | --- | --- |
@@ -443,6 +506,7 @@ parity-gate record    --suite FILE [--out PATH] [--from URL]   # capture today's
 parity-gate run       --suite FILE [--strict] [--evidence DIR] # gate against it
 parity-gate stability --suite FILE                             # measure the noise
 parity-gate import-openapi --spec SPEC --out FILE               # a suite from a spec
+parity-gate selftest  (--demo | --suite FILE)                  # measure what the gate catches
 parity-gate verify    DIR                                      # re-check an evidence bundle
 parity-gate scan      PATH...                                  # fail on a credential in a file
 parity-gate demo      [--mode MODE]                            # offline, bundled mock
@@ -455,6 +519,7 @@ parity-gate mock      [--port 8799]                            # serve the mock 
 | --- | --- |
 | `--filter PATTERN` | run a subset: a glob against a case id or requirement, or a substring of the title. Repeatable. `--filter 'CAT-*'`, `--filter REQ-SEC-01`, `--filter orders` |
 | `--keep N` | keep only the N most recent evidence bundles and delete the rest. Off by default; only directories carrying a manifest are ever touched |
+| `--sarif PATH` | `run` and `stability`: also write the SARIF log to a fixed path, for an upload step |
 
 If the `parity-gate` script is not on your `PATH` (common on Windows, where
 `pip` installs it under `Scripts\`), `python -m parity_gate` is the same
@@ -478,15 +543,18 @@ and installing it should pull nothing.
 | `redaction.py` | Everything leaving the process, scrubbed |
 | `evidence.py` | Hash-chained records, manifest, traceability matrix, verification |
 | `report.py` | Markdown for tickets, self-contained HTML for CI |
+| `sarif.py` | SARIF 2.1.0, located on the contract line or the suite case |
+| `rules.py` | The stable rule catalogue every finding is reported under |
+| `selftest.py` | Fault injection against the real judging code: detection and false-alarm rates |
 | `httpclient.py` | Pooled `http.client`: response deadline and size cap, retries, re-validated redirects |
-| `runner.py` | Orchestration and the verdict rules for all three modes |
+| `runner.py` | Orchestration, and pure judging functions with the verdict rules in one place |
 | `mock/server.py` | The two-headed demo API, deterministic down to the flaky endpoint |
 
-**225 tests**, unit and integration, offline. [CI](.github/workflows/ci.yml)
+**250 tests**, unit and integration, offline. [CI](.github/workflows/ci.yml)
 runs them on Python 3.11, 3.12 and 3.13, on Linux and Windows, next to lint,
-format, type checking, a credential scan of the repository and a check that the
-committed evidence bundle still verifies; the badge at the top is the honest
-answer to whether it is currently green.
+format, type checking, a credential scan of the repository, a check that the
+committed evidence bundle still verifies and the selftest above; the badge at
+the top is the honest answer to whether it is currently green.
 
 The integration suite boots the mock and asserts that each planted defect is the
 finding that comes out, including two control experiments that must produce
@@ -507,6 +575,7 @@ Both are fixed, both now have a regression test, and the write-up
   files, and why the oracle is a running service
 - [ADR-002](docs/adr-002-record-shape-not-values.md): why a recorded contract
   holds shape and status but never values, and how that removes the rot
+- [Rule catalogue](docs/rules.md): every finding id and its consumer impact
 - [SECURITY.md](SECURITY.md): threat model and controls
 - [Review findings](docs/review-2026-09-12.md): an adversarial review, what it
   broke, what was fixed, and what is still open

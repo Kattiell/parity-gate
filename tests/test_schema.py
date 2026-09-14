@@ -54,6 +54,24 @@ def test_integer_to_number_is_widening_not_breaking() -> None:
     assert kinds([{"qty": 3}], [{"qty": 3.5}])["$.qty"] == ("TYPE_WIDENED", "risky")
 
 
+def test_one_item_changing_type_is_breaking_even_though_it_reads_as_a_union() -> None:
+    """Found by `parity-gate selftest` on its first run. One product of four
+    whose price comes back as a string makes the candidate's types the union
+    {number, string}: nothing was removed, so it used to be TYPE_WIDENED and
+    only risky. The consumer parsing that product fails all the same."""
+    base = [{"price": 19.9}, {"price": 24.0}]
+    cand = [{"price": "19.90"}, {"price": 24.0}]
+    assert kinds(base, cand)["$.price"] == ("TYPE_WIDENED", "breaking")
+
+
+def test_a_first_real_value_where_the_baseline_only_saw_null_is_risky() -> None:
+    """A field that was null in every sample never had its type observed, so a
+    value arriving there is worth a look, not a failed build."""
+    base = [{"deletedAt": None}, {"deletedAt": None}]
+    cand = [{"deletedAt": None}, {"deletedAt": "2026-09-13"}]
+    assert kinds(base, cand)["$.deletedAt"] == ("TYPE_WIDENED", "risky")
+
+
 def test_a_new_field_is_additive() -> None:
     assert kinds([{"id": 1}], [{"id": 1, "warehouseId": 7}])["$.warehouseId"] == (
         "FIELD_ADDED",

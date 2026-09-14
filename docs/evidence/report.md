@@ -2,12 +2,12 @@
 
 **Verdict: FAIL**
 
-- Run `20260914T015634Z-f50c22` finished 2026-09-14T01:56:34Z
+- Run `20260914T021657Z-7b4a1f` finished 2026-09-14T02:16:57Z
 - Baseline `http://127.0.0.1:8799/legacy`
 - Candidate `http://127.0.0.1:8799/next`
 - 7 case(s): 1 PASS, 2 WARN, 4 FAIL
 - 9 breaking contract change(s), 5 value difference(s), 1 unstable endpoint(s)
-- Evidence chain head `982e4b827dfb9c69`
+- Evidence chain head `eee530873a1e5793`
 
 ## Cases
 
@@ -31,18 +31,18 @@
 
 | Severity | Kind | Path | Detail |
 | --- | --- | --- | --- |
-| breaking | `NULLABLE_ADDED` | `$.products[].discount` | candidate can return null where baseline never did (['number'] -> ['null', 'number']) |
-| breaking | `TYPE_CHANGED` | `$.products[].price` | incompatible type change (['number'] -> ['string']) |
-| breaking | `FIELD_REMOVED` | `$.products[].stock` | present in baseline but absent from candidate (was always present) |
-| additive | `FIELD_ADDED` | `$.products[].internalCost` | new in candidate; harmless for consumers that ignore unknown fields |
-| additive | `FIELD_ADDED` | `$.products[].warehouseId` | new in candidate; harmless for consumers that ignore unknown fields |
+| breaking | `PG1003 NULLABLE_ADDED` | `$.products[].discount` | candidate can return null where baseline never did (['number'] -> ['null', 'number']) |
+| breaking | `PG1004 TYPE_CHANGED` | `$.products[].price` | incompatible type change (['number'] -> ['string']) |
+| breaking | `PG1001 FIELD_REMOVED` | `$.products[].stock` | present in baseline but absent from candidate (was always present) |
+| additive | `PG1007 FIELD_ADDED` | `$.products[].internalCost` | new in candidate; harmless for consumers that ignore unknown fields |
+| additive | `PG1007 FIELD_ADDED` | `$.products[].warehouseId` | new in candidate; harmless for consumers that ignore unknown fields |
 
 **Value differences**
 
 | Kind | Path | Baseline | Candidate |
 | --- | --- | --- | --- |
-| `ORDER_ONLY` | `$.products` | `[1, 2, 3, 4]` | `[4, 3, 2, 1]` |
-| `VALUE` | `$.total` | `4` | `3` |
+| `PG2006 ORDER_ONLY` | `$.products` | `[1, 2, 3, 4]` | `[4, 3, 2, 1]` |
+| `PG2001 VALUE` | `$.total` | `4` | `3` |
 
 _17 further value difference(s) are folded away: they are restatements of the contract drift listed above._
 
@@ -52,16 +52,16 @@ _17 further value difference(s) are folded away: they are restatements of the co
 
 **Failed assertions**
 
-- `status`: expected [404], got 200
-- `status_parity`: baseline answered [404], candidate answered [200]
+- `PG3001 status`: expected [404], got 200
+- `PG3002 status_parity`: baseline answered [404], candidate answered [200]
 
 **Contract drift**
 
 | Severity | Kind | Path | Detail |
 | --- | --- | --- | --- |
-| breaking | `FIELD_REMOVED` | `$.code` | present in baseline but absent from candidate (was always present) |
-| breaking | `FIELD_REMOVED` | `$.error` | present in baseline but absent from candidate (was always present) |
-| additive | `FIELD_ADDED` | `$.data` | new in candidate; harmless for consumers that ignore unknown fields |
+| breaking | `PG1001 FIELD_REMOVED` | `$.code` | present in baseline but absent from candidate (was always present) |
+| breaking | `PG1001 FIELD_REMOVED` | `$.error` | present in baseline but absent from candidate (was always present) |
+| additive | `PG1007 FIELD_ADDED` | `$.data` | new in candidate; harmless for consumers that ignore unknown fields |
 
 _3 further value difference(s) are folded away: they are restatements of the contract drift listed above._
 
@@ -71,23 +71,23 @@ _3 further value difference(s) are folded away: they are restatements of the con
 
 **Failed assertions**
 
-- `forbidden_field`: $.products[].internalCost must not be exposed but is present
+- `PG3006 forbidden_field`: $.products[].internalCost must not be exposed but is present
 
 **Contract drift**
 
 | Severity | Kind | Path | Detail |
 | --- | --- | --- | --- |
-| breaking | `TYPE_CHANGED` | `$.products[].price` | incompatible type change (['number'] -> ['string']) |
-| breaking | `FIELD_REMOVED` | `$.products[].stock` | present in baseline but absent from candidate (was always present) |
-| additive | `FIELD_ADDED` | `$.products[].internalCost` | new in candidate; harmless for consumers that ignore unknown fields |
-| additive | `FIELD_ADDED` | `$.products[].warehouseId` | new in candidate; harmless for consumers that ignore unknown fields |
+| breaking | `PG1004 TYPE_CHANGED` | `$.products[].price` | incompatible type change (['number'] -> ['string']) |
+| breaking | `PG1001 FIELD_REMOVED` | `$.products[].stock` | present in baseline but absent from candidate (was always present) |
+| additive | `PG1007 FIELD_ADDED` | `$.products[].internalCost` | new in candidate; harmless for consumers that ignore unknown fields |
+| additive | `PG1007 FIELD_ADDED` | `$.products[].warehouseId` | new in candidate; harmless for consumers that ignore unknown fields |
 
 **Value differences**
 
 | Kind | Path | Baseline | Candidate |
 | --- | --- | --- | --- |
-| `ORDER_ONLY` | `$.products` | `[1, 2]` | `[2, 1]` |
-| `VALUE` | `$.total` | `2` | `1` |
+| `PG2006 ORDER_ONLY` | `$.products` | `[1, 2]` | `[2, 1]` |
+| `PG2001 VALUE` | `$.total` | `2` | `1` |
 
 _8 further value difference(s) are folded away: they are restatements of the contract drift listed above._
 
@@ -119,22 +119,22 @@ mask_paths = [
 
 **Failed assertions**
 
-- `graphql_errors`: the response carries GraphQL errors: Cannot resolve field 'stock' on type 'Product'
+- `PG3007 graphql_errors`: the response carries GraphQL errors: Cannot resolve field 'stock' on type 'Product'
 
 **Contract drift**
 
 | Severity | Kind | Path | Detail |
 | --- | --- | --- | --- |
-| breaking | `TYPE_CHANGED` | `$.data.products[].price` | incompatible type change (['number'] -> ['string']) |
-| breaking | `FIELD_REMOVED` | `$.data.products[].stock` | present in baseline but absent from candidate (was always present) |
-| additive | `FIELD_ADDED` | `$.data.products[].internalCost` | new in candidate; harmless for consumers that ignore unknown fields |
-| additive | `FIELD_ADDED` | `$.data.products[].warehouseId` | new in candidate; harmless for consumers that ignore unknown fields |
+| breaking | `PG1004 TYPE_CHANGED` | `$.data.products[].price` | incompatible type change (['number'] -> ['string']) |
+| breaking | `PG1001 FIELD_REMOVED` | `$.data.products[].stock` | present in baseline but absent from candidate (was always present) |
+| additive | `PG1007 FIELD_ADDED` | `$.data.products[].internalCost` | new in candidate; harmless for consumers that ignore unknown fields |
+| additive | `PG1007 FIELD_ADDED` | `$.data.products[].warehouseId` | new in candidate; harmless for consumers that ignore unknown fields |
 
 **Value differences**
 
 | Kind | Path | Baseline | Candidate |
 | --- | --- | --- | --- |
-| `EXTRA_IN_CANDIDATE` | `$.errors` | `None` | `[{"message": "Cannot resolve field 'stock' on type 'Product'"}]` |
+| `PG2004 EXTRA_IN_CANDIDATE` | `$.errors` | `None` | `[{"message": "Cannot resolve field 'stock' on type 'Product'"}]` |
 
 _8 further value difference(s) are folded away: they are restatements of the contract drift listed above._
 

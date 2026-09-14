@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from fnmatch import fnmatchcase
 from typing import Any
 
+from parity_gate.rules import DIFFERENCE, rule_id
 from parity_gate.schema import type_of
 
 MASKED = "<masked>"
@@ -46,6 +47,7 @@ class Difference:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "rule": rule_id(DIFFERENCE, self.kind),
             "path": self.path,
             "kind": self.kind,
             "baseline": _truncate(self.baseline),

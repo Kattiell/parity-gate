@@ -49,6 +49,9 @@ jobs:
       - name: The committed sample evidence still verifies after a checkout
         run: python -m parity_gate verify docs/evidence
 
+      - name: The gate still catches its whole fault model, with no false alarms
+        run: python -m parity_gate selftest --demo --quiet
+
   test:
     name: tests (py${{ matrix.python }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}

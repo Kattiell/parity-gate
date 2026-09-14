@@ -16,13 +16,14 @@ Exit codes are part of the contract with CI:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import sys
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from parity_gate import __version__, contracts, evidence, openapi, report
+from parity_gate import __version__, contracts, evidence, openapi, report, sarif
 from parity_gate import suite as suite_module
 from parity_gate.evidence import ERROR, FAIL, PASS, WARN
 from parity_gate.runner import ContractRecordingError, Runner
@@ -38,6 +39,10 @@ _COLORS = {PASS: "\033[32m", WARN: "\033[33m", FAIL: "\033[31m", ERROR: "\033[35
 _FILTER_HELP = (
     "only run cases whose id or requirement matches this glob, or whose title "
     "contains it; repeatable"
+)
+_SARIF_HELP = (
+    "also write the SARIF log to this fixed path, for a CI step that uploads it; "
+    "every bundle carries its own report.sarif regardless"
 )
 _KEEP_HELP = (
     "after writing, keep only the N most recent evidence bundles in the "
@@ -90,6 +95,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     run.add_argument("--filter", action="append", default=[], metavar="PATTERN", help=_FILTER_HELP)
     run.add_argument("--keep", type=int, default=None, metavar="N", help=_KEEP_HELP)
+    run.add_argument("--sarif", type=Path, default=None, metavar="PATH", help=_SARIF_HELP)
     run.add_argument("--quiet", action="store_true", help="only print the final summary")
     run.set_defaults(handler=_cmd_run)
 
@@ -142,6 +148,7 @@ def _parser() -> argparse.ArgumentParser:
         "--filter", action="append", default=[], metavar="PATTERN", help=_FILTER_HELP
     )
     stability.add_argument("--keep", type=int, default=None, metavar="N", help=_KEEP_HELP)
+    stability.add_argument("--sarif", type=Path, default=None, metavar="PATH", help=_SARIF_HELP)
     stability.add_argument("--quiet", action="store_true")
     stability.set_defaults(handler=_cmd_stability)
 
@@ -173,6 +180,58 @@ def _parser() -> argparse.ArgumentParser:
     scan = sub.add_parser("scan", help="fail if a file contains something shaped like a credential")
     scan.add_argument("paths", nargs="+", type=Path)
     scan.set_defaults(handler=_cmd_scan)
+
+    selftest = sub.add_parser(
+        "selftest",
+        help="inject a fixed fault model into real responses and measure what the gate catches",
+    )
+    source = selftest.add_mutually_exclusive_group(required=True)
+    source.add_argument("--suite", type=Path, help="sample the live targets of this suite")
+    source.add_argument(
+        "--demo", action="store_true", help="use the bundled demo suite and mock API (offline)"
+    )
+    selftest.add_argument(
+        "--side",
+        choices=["candidate", "baseline"],
+        default=None,
+        help="which live target to sample (default: candidate; baseline for --demo)",
+    )
+    selftest.add_argument(
+        "--mode",
+        choices=["both", "differential", "contract"],
+        default="both",
+        help="which judging mode to measure",
+    )
+    selftest.add_argument(
+        "--min-detection",
+        type=float,
+        default=1.0,
+        metavar="RATE",
+        help="fail when the detection rate of any mode is below this (default: 1.0)",
+    )
+    selftest.add_argument(
+        "--max-false-alarms",
+        type=float,
+        default=0.0,
+        metavar="RATE",
+        help="fail when the false-alarm rate of any mode is above this (default: 0.0)",
+    )
+    selftest.add_argument(
+        "--max-sites",
+        type=int,
+        default=25,
+        metavar="N",
+        help="at most N injection sites per fault per case (default: 25)",
+    )
+    selftest.add_argument(
+        "--json", dest="json_out", type=Path, default=None, help="write every mutant here"
+    )
+    selftest.add_argument("--with-mock", action="store_true")
+    selftest.add_argument(
+        "--filter", action="append", default=[], metavar="PATTERN", help=_FILTER_HELP
+    )
+    selftest.add_argument("--quiet", action="store_true", help="only print the totals")
+    selftest.set_defaults(handler=_cmd_selftest)
 
     mock = sub.add_parser("mock", help="serve the bundled two-variant mock API")
     mock.add_argument("--port", type=int, default=8799)
@@ -264,7 +323,9 @@ def _cmd_run(args: argparse.Namespace) -> int:
     finally:
         _stop_mock(server)
 
-    bundle = _write_bundle(run, Path(args.evidence), getattr(args, "keep", None))
+    bundle = _write_bundle(
+        run, Path(args.evidence), getattr(args, "keep", None), getattr(args, "sarif", None)
+    )
 
     summary = run.to_dict()["summary"]
     print()
@@ -345,12 +406,19 @@ def _prune_bundles(root: Path, keep: int | None) -> int:
     return removed
 
 
-def _write_bundle(run, root: Path, keep: int | None = None) -> Path:  # type: ignore[no-untyped-def]
+def _write_bundle(  # type: ignore[no-untyped-def]
+    run, root: Path, keep: int | None = None, sarif_copy: Path | None = None
+) -> Path:
     """Write the evidence bundle for a run and return its directory."""
     bundle = root / run.run_id
     files = evidence.write_run(run, bundle)
     files["report.md"] = evidence.write_text(bundle / "report.md", report.render_markdown(run))
     files["report.html"] = evidence.write_text(bundle / "report.html", report.render_html(run))
+    log = json.dumps(sarif.render(run), indent=2, ensure_ascii=False) + "\n"
+    files["report.sarif"] = evidence.write_text(bundle / "report.sarif", log)
+    if sarif_copy is not None:
+        sarif_copy.parent.mkdir(parents=True, exist_ok=True)
+        evidence.write_text(sarif_copy, log)
     evidence.write_manifest(bundle, files, run.chain_head, run.run_id)
     _prune_bundles(root, keep)
     return bundle
@@ -447,7 +515,9 @@ def _cmd_stability(args: argparse.Namespace) -> int:
     finally:
         _stop_mock(server)
 
-    bundle = _write_bundle(run, Path(args.evidence), getattr(args, "keep", None))
+    bundle = _write_bundle(
+        run, Path(args.evidence), getattr(args, "keep", None), getattr(args, "sarif", None)
+    )
     suggestions = _mask_suggestions(run)
     summary = run.to_dict()["summary"]
 
@@ -586,6 +656,148 @@ def _cmd_scan(args: argparse.Namespace) -> int:
         return EXIT_GATE_FAILED
     print("no credential-shaped strings found")
     return EXIT_OK
+
+
+def _cmd_selftest(args: argparse.Namespace) -> int:
+    from parity_gate import selftest
+
+    if args.demo:
+        from parity_gate import demo as demo_assets
+
+        suite_path, with_mock, side = demo_assets.suite_path("differential"), True, "baseline"
+    else:
+        suite_path, with_mock, side = args.suite, args.with_mock, "candidate"
+    side = args.side or side
+
+    try:
+        loaded = suite_module.load(suite_path)
+    except suite_module.SuiteError as exc:
+        _err(str(exc))
+        return EXIT_USAGE
+    refused = _apply_filter(loaded, args.filter)
+    if refused:
+        return refused
+
+    samples: list[selftest.Sample] = []
+    skipped: dict[str, str] = {}
+    server = None
+    try:
+        if with_mock:
+            server = _start_mock(loaded, quiet=True)
+        runner = Runner(loaded)
+        runner.preflight()
+        for case in loaded.cases:
+            response = runner.sample(case, side)
+            if response.transport_error or response.status is None:
+                skipped[case.id] = f"did not answer: {response.transport_error}"
+            elif response.json_body is None:
+                skipped[case.id] = f"no JSON body to inject into ({response.json_error})"
+            else:
+                samples.append(
+                    selftest.Sample(case=case, status=response.status, payload=response.json_body)
+                )
+        runner.close()
+    except SafetyError as exc:
+        _err(f"refused before sending anything: {exc}")
+        return EXIT_REFUSED
+    except suite_module.SuiteError as exc:
+        _err(str(exc))
+        return EXIT_USAGE
+    except OSError as exc:
+        _err(f"could not start the mock API: {exc}")
+        return EXIT_USAGE
+    finally:
+        _stop_mock(server)
+
+    if not samples:
+        _err("no case produced a JSON response to inject faults into")
+        for case_id, reason in skipped.items():
+            _err(f"  {case_id}: {reason}")
+        return EXIT_USAGE
+
+    modes = selftest.MODES if args.mode == "both" else (args.mode,)
+    result = selftest.run(loaded, samples, modes=modes, max_sites=max(1, args.max_sites))
+    result.skipped = skipped
+
+    print(f"selftest  {loaded.name}  ({len(samples)} cases sampled from {side})")
+    if not args.quiet:
+        _print_selftest_table(result, selftest)
+    print()
+    breaches: list[str] = []
+    for mode in modes:
+        caught, faults = result.detection(mode)
+        alarms, controls = result.false_alarms(mode)
+        detection = caught / faults if faults else 1.0
+        false_alarms = alarms / controls if controls else 0.0
+        print(
+            f"{mode:<13} detection {detection:6.1%} ({caught}/{faults})   "
+            f"false alarms {false_alarms:6.1%} ({alarms}/{controls})"
+        )
+        if detection < args.min_detection:
+            breaches.append(f"{mode} detection {detection:.1%} is below {args.min_detection:.1%}")
+        if false_alarms > args.max_false_alarms:
+            breaches.append(
+                f"{mode} false alarms {false_alarms:.1%} exceed {args.max_false_alarms:.1%}"
+            )
+    for case_id, reason in skipped.items():
+        print(f"skipped   {case_id}: {reason}")
+
+    if args.json_out:
+        args.json_out.parent.mkdir(parents=True, exist_ok=True)
+        args.json_out.write_text(
+            json.dumps(result.to_dict(), indent=2) + "\n", encoding="utf-8", newline="\n"
+        )
+        print(f"mutants   {args.json_out}")
+
+    if result.errors:
+        breaches.append(f"{len(result.errors)} mutant(s) made the tool raise; that is a defect")
+    if breaches:
+        print()
+        for breach in breaches:
+            print(f"FAIL  {breach}")
+        return EXIT_GATE_FAILED
+    return EXIT_OK
+
+
+def _print_selftest_table(result, selftest) -> None:  # type: ignore[no-untyped-def]
+    counts: dict[tuple[str, str, str], dict[str, int]] = {}
+    for mutant in result.mutants:
+        key = (mutant.expectation, mutant.operator, mutant.mode)
+        tally = counts.setdefault(key, {})
+        tally[mutant.outcome] = tally.get(mutant.outcome, 0) + 1
+
+    print()
+    print(f"  {'fault (must fail)':<22}{'mode':<14}{'injected':>9}{'caught':>8}{'missed':>8}")
+    for (expectation, operator, mode), tally in counts.items():
+        if expectation == selftest.DETECT:
+            print(
+                f"  {operator:<22}{mode:<14}{sum(tally.values()):>9}"
+                f"{tally.get(selftest.CAUGHT, 0):>8}{tally.get(selftest.MISSED, 0):>8}"
+            )
+    print()
+    print(f"  {'control (must not)':<22}{'mode':<14}{'injected':>9}{'fine':>8}{'alarms':>8}")
+    for (expectation, operator, mode), tally in counts.items():
+        if expectation == selftest.TOLERATE:
+            print(
+                f"  {operator:<22}{mode:<14}{sum(tally.values()):>9}"
+                f"{tally.get(selftest.TOLERATED, 0):>8}{tally.get(selftest.FALSE_ALARM, 0):>8}"
+            )
+
+    wrong = [
+        m
+        for m in result.mutants
+        if m.outcome in {selftest.MISSED, selftest.FALSE_ALARM, selftest.TOOL_ERROR}
+    ]
+    if wrong:
+        print()
+        for mutant in wrong[:40]:
+            detail = mutant.error or "; ".join(mutant.findings) or "no findings"
+            print(
+                f"  {mutant.outcome.upper():<12}{mutant.mode:<14}{mutant.operator:<20}"
+                f"{mutant.case_id:<10}{mutant.site}  ->  {mutant.verdict}: {detail}"
+            )
+        if len(wrong) > 40:
+            print(f"  ... and {len(wrong) - 40} more; pass --json to see them all")
 
 
 def _cmd_mock(args: argparse.Namespace) -> int:

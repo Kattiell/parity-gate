@@ -19,6 +19,8 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
+from parity_gate.rules import DRIFT, rule_id
+
 Segment = tuple[str, ...]
 Path = tuple[Segment, ...]
 
@@ -257,6 +259,7 @@ class Drift:
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "rule": rule_id(DRIFT, self.kind),
             "path": self.path,
             "kind": self.kind,
             "severity": self.severity.value,
@@ -407,12 +410,26 @@ def _compare_field(baseline: Schema, candidate: Schema, path: Path, rendered: st
             )
         )
     elif not removed:
+        # A new type outside the numeric family is one no existing parser of
+        # this field has seen. It usually arrives in *one* item of a page (one
+        # product's price serialised as a string), which is exactly why it
+        # shows up as a union rather than a replacement, and it breaks that
+        # consumer as surely as a full TYPE_CHANGED would. The exception is a
+        # field the baseline only ever returned as null: its type was never
+        # observed, so a first real value is worth a look, not a failed build.
+        never_typed = base_types == {"null"}
         found.append(
             Drift(
                 path=rendered,
                 kind="TYPE_WIDENED",
-                severity=Severity.RISKY,
-                detail=f"candidate returns extra types ({summary})",
+                severity=Severity.RISKY if never_typed else Severity.BREAKING,
+                detail=(
+                    f"baseline only ever returned null here, so its type was never observed "
+                    f"({summary})"
+                    if never_typed
+                    else f"candidate returns a type consumers of this field never received "
+                    f"({summary})"
+                ),
             )
         )
     elif not added:

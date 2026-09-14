@@ -225,6 +225,7 @@ def test_the_cli_writes_a_bundle_that_verifies(suite_file: Path, tmp_path: Path)
         "run.json",
         "report.md",
         "report.html",
+        "report.sarif",
         "manifest.json",
     }
     assert verify(bundle) == []

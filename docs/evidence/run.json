@@ -6,7 +6,7 @@
     "python": "3.13.5",
     "platform": "Windows-11-10.0.26200-SP0"
   },
-  "run_id": "20260914T015634Z-f50c22",
+  "run_id": "20260914T021657Z-7b4a1f",
   "mode": "differential",
   "suite": {
     "name": "demo-catalog",
@@ -35,8 +35,8 @@
     "max_retries": 0,
     "workers": 1
   },
-  "started_at": "2026-09-14T01:56:34Z",
-  "finished_at": "2026-09-14T01:56:34Z",
+  "started_at": "2026-09-14T02:16:57Z",
+  "finished_at": "2026-09-14T02:16:57Z",
   "summary": {
     "verdict": "FAIL",
     "cases": 7,
@@ -112,7 +112,7 @@
       }
     ]
   },
-  "chain_head": "982e4b827dfb9c69064b85a144056d9b822e74774a5a6d858152e30105a23585",
+  "chain_head": "eee530873a1e5793d1bafb2e1cab681a2886bfcb2bcb5c6657cb2c76b956361d",
   "records": [
     {
       "case": {
@@ -128,36 +128,43 @@
       "verdict": "FAIL",
       "checks": [
         {
+          "rule": "PG3001",
           "name": "status",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3005",
           "name": "required_field",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3005",
           "name": "required_field",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3005",
           "name": "required_field",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3005",
           "name": "required_field",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3008",
           "name": "latency",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3002",
           "name": "status_parity",
           "passed": true,
           "detail": ""
@@ -165,30 +172,35 @@
       ],
       "drifts": [
         {
+          "rule": "PG1003",
           "path": "$.products[].discount",
           "kind": "NULLABLE_ADDED",
           "severity": "breaking",
           "detail": "candidate can return null where baseline never did (['number'] -> ['null', 'number'])"
         },
         {
+          "rule": "PG1004",
           "path": "$.products[].price",
           "kind": "TYPE_CHANGED",
           "severity": "breaking",
           "detail": "incompatible type change (['number'] -> ['string'])"
         },
         {
+          "rule": "PG1001",
           "path": "$.products[].stock",
           "kind": "FIELD_REMOVED",
           "severity": "breaking",
           "detail": "present in baseline but absent from candidate (was always present)"
         },
         {
+          "rule": "PG1007",
           "path": "$.products[].internalCost",
           "kind": "FIELD_ADDED",
           "severity": "additive",
           "detail": "new in candidate; harmless for consumers that ignore unknown fields"
         },
         {
+          "rule": "PG1007",
           "path": "$.products[].warehouseId",
           "kind": "FIELD_ADDED",
           "severity": "additive",
@@ -197,6 +209,7 @@
       ],
       "differences": [
         {
+          "rule": "PG2006",
           "path": "$.products",
           "kind": "ORDER_ONLY",
           "baseline": [
@@ -214,6 +227,7 @@
           "detail": "the same items come back in a different order (by id)"
         },
         {
+          "rule": "PG2001",
           "path": "$.total",
           "kind": "VALUE",
           "baseline": 4,
@@ -232,8 +246,8 @@
             200,
             200
           ],
-          "p50_ms": 0.63,
-          "max_ms": 2.0,
+          "p50_ms": 0.82,
+          "max_ms": 1.93,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -245,8 +259,8 @@
             200,
             200
           ],
-          "p50_ms": 0.39,
-          "max_ms": 0.39,
+          "p50_ms": 0.41,
+          "max_ms": 0.43,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -255,7 +269,7 @@
         "url": "http://127.0.0.1:8799/legacy/products?limit=4",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 2.0,
+        "elapsed_ms": 1.93,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -263,7 +277,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "658",
           "cache-control": "no-store"
@@ -332,7 +346,7 @@
         "url": "http://127.0.0.1:8799/next/products?limit=4",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.39,
+        "elapsed_ms": 0.43,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -340,7 +354,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "780",
           "cache-control": "no-store"
@@ -671,7 +685,7 @@
       },
       "error": null,
       "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
-      "hash": "ac38edb07250c0ea24596f83a7dc55022594c8c0a15b9cbcd3fe0430f58d1fc0"
+      "hash": "71489c2699d7ede95dd893a0358355ed0ee9768a0204b6de62355c1014c42ecf"
     },
     {
       "case": {
@@ -687,26 +701,31 @@
       "verdict": "PASS",
       "checks": [
         {
+          "rule": "PG3001",
           "name": "status",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3005",
           "name": "required_field",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3005",
           "name": "required_field",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3005",
           "name": "required_field",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3002",
           "name": "status_parity",
           "passed": true,
           "detail": ""
@@ -725,8 +744,8 @@
             200,
             200
           ],
-          "p50_ms": 0.46,
-          "max_ms": 0.51,
+          "p50_ms": 0.49,
+          "max_ms": 0.57,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -738,8 +757,8 @@
             200,
             200
           ],
-          "p50_ms": 0.27,
-          "max_ms": 0.34,
+          "p50_ms": 0.59,
+          "max_ms": 0.73,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -748,7 +767,7 @@
         "url": "http://127.0.0.1:8799/legacy/products/1",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.44,
+        "elapsed_ms": 0.49,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -756,7 +775,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "131",
           "cache-control": "no-store"
@@ -779,7 +798,7 @@
         "url": "http://127.0.0.1:8799/next/products/1",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.34,
+        "elapsed_ms": 0.73,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -787,7 +806,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "131",
           "cache-control": "no-store"
@@ -947,8 +966,8 @@
         }
       },
       "error": null,
-      "previous_hash": "ac38edb07250c0ea24596f83a7dc55022594c8c0a15b9cbcd3fe0430f58d1fc0",
-      "hash": "29bae005f97213ca69da67d89b7df32fff08737d9dc0f9b12025da6281eafc6a"
+      "previous_hash": "71489c2699d7ede95dd893a0358355ed0ee9768a0204b6de62355c1014c42ecf",
+      "hash": "563f890e40c47b409ca7022243774e570eacd54552bdc8e048070fc4d10a8a75"
     },
     {
       "case": {
@@ -964,11 +983,13 @@
       "verdict": "FAIL",
       "checks": [
         {
+          "rule": "PG3001",
           "name": "status",
           "passed": false,
           "detail": "expected [404], got 200"
         },
         {
+          "rule": "PG3002",
           "name": "status_parity",
           "passed": false,
           "detail": "baseline answered [404], candidate answered [200]"
@@ -976,18 +997,21 @@
       ],
       "drifts": [
         {
+          "rule": "PG1001",
           "path": "$.code",
           "kind": "FIELD_REMOVED",
           "severity": "breaking",
           "detail": "present in baseline but absent from candidate (was always present)"
         },
         {
+          "rule": "PG1001",
           "path": "$.error",
           "kind": "FIELD_REMOVED",
           "severity": "breaking",
           "detail": "present in baseline but absent from candidate (was always present)"
         },
         {
+          "rule": "PG1007",
           "path": "$.data",
           "kind": "FIELD_ADDED",
           "severity": "additive",
@@ -1006,8 +1030,8 @@
             404,
             404
           ],
-          "p50_ms": 0.38,
-          "max_ms": 0.4,
+          "p50_ms": 0.37,
+          "max_ms": 0.42,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1019,8 +1043,8 @@
             200,
             200
           ],
-          "p50_ms": 0.49,
-          "max_ms": 0.49,
+          "p50_ms": 0.36,
+          "max_ms": 0.37,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -1029,7 +1053,7 @@
         "url": "http://127.0.0.1:8799/legacy/products/999",
         "method": "GET",
         "status": 404,
-        "elapsed_ms": 0.38,
+        "elapsed_ms": 0.42,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1037,7 +1061,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "59",
           "cache-control": "no-store"
@@ -1053,7 +1077,7 @@
         "url": "http://127.0.0.1:8799/next/products/999",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.49,
+        "elapsed_ms": 0.36,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1061,7 +1085,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "14",
           "cache-control": "no-store"
@@ -1122,8 +1146,8 @@
         }
       },
       "error": null,
-      "previous_hash": "29bae005f97213ca69da67d89b7df32fff08737d9dc0f9b12025da6281eafc6a",
-      "hash": "e656bde9749819714f94eb79d37ef2af98da98275ff1b871a242eb1565a47684"
+      "previous_hash": "563f890e40c47b409ca7022243774e570eacd54552bdc8e048070fc4d10a8a75",
+      "hash": "4a3f39ad48193e642582404c14f8994cc379f92990e6b822706052e618625ce4"
     },
     {
       "case": {
@@ -1139,21 +1163,25 @@
       "verdict": "FAIL",
       "checks": [
         {
+          "rule": "PG3001",
           "name": "status",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3006",
           "name": "forbidden_field",
           "passed": false,
           "detail": "$.products[].internalCost must not be exposed but is present"
         },
         {
+          "rule": "PG3006",
           "name": "forbidden_field",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3002",
           "name": "status_parity",
           "passed": true,
           "detail": ""
@@ -1161,24 +1189,28 @@
       ],
       "drifts": [
         {
+          "rule": "PG1004",
           "path": "$.products[].price",
           "kind": "TYPE_CHANGED",
           "severity": "breaking",
           "detail": "incompatible type change (['number'] -> ['string'])"
         },
         {
+          "rule": "PG1001",
           "path": "$.products[].stock",
           "kind": "FIELD_REMOVED",
           "severity": "breaking",
           "detail": "present in baseline but absent from candidate (was always present)"
         },
         {
+          "rule": "PG1007",
           "path": "$.products[].internalCost",
           "kind": "FIELD_ADDED",
           "severity": "additive",
           "detail": "new in candidate; harmless for consumers that ignore unknown fields"
         },
         {
+          "rule": "PG1007",
           "path": "$.products[].warehouseId",
           "kind": "FIELD_ADDED",
           "severity": "additive",
@@ -1187,6 +1219,7 @@
       ],
       "differences": [
         {
+          "rule": "PG2006",
           "path": "$.products",
           "kind": "ORDER_ONLY",
           "baseline": [
@@ -1200,6 +1233,7 @@
           "detail": "the same items come back in a different order (by id)"
         },
         {
+          "rule": "PG2001",
           "path": "$.total",
           "kind": "VALUE",
           "baseline": 2,
@@ -1218,8 +1252,8 @@
             200,
             200
           ],
-          "p50_ms": 0.45,
-          "max_ms": 0.45,
+          "p50_ms": 0.52,
+          "max_ms": 0.58,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1231,8 +1265,8 @@
             200,
             200
           ],
-          "p50_ms": 0.25,
-          "max_ms": 0.34,
+          "p50_ms": 0.44,
+          "max_ms": 1.41,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -1241,7 +1275,7 @@
         "url": "http://127.0.0.1:8799/legacy/products?limit=2",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.45,
+        "elapsed_ms": 0.52,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1249,7 +1283,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "402",
           "cache-control": "no-store"
@@ -1295,7 +1329,7 @@
         "url": "http://127.0.0.1:8799/next/products?limit=2",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.34,
+        "elapsed_ms": 0.43,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1303,7 +1337,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "461",
           "cache-control": "no-store"
@@ -1607,8 +1641,8 @@
         }
       },
       "error": null,
-      "previous_hash": "e656bde9749819714f94eb79d37ef2af98da98275ff1b871a242eb1565a47684",
-      "hash": "c85c30b7f05996b36c5b032210ed330146c51afd0e9e1004008d102f66f2b7b2"
+      "previous_hash": "4a3f39ad48193e642582404c14f8994cc379f92990e6b822706052e618625ce4",
+      "hash": "22661b9d05de52aa678261f68050f31928e63b655cbf6ed47c01d382e2290d96"
     },
     {
       "case": {
@@ -1624,16 +1658,19 @@
       "verdict": "WARN",
       "checks": [
         {
+          "rule": "PG3001",
           "name": "status",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3005",
           "name": "required_field",
           "passed": true,
           "detail": ""
         },
         {
+          "rule": "PG3002",
           "name": "status_parity",
           "passed": true,
           "detail": ""
@@ -1652,8 +1689,8 @@
             200,
             200
           ],
-          "p50_ms": 0.36,
-          "max_ms": 0.59,
+          "p50_ms": 0.38,
+          "max_ms": 0.63,
           "volatile_paths": [
             "$.uptimeSeconds"
           ],
@@ -1667,8 +1704,8 @@
             200,
             200
           ],
-          "p50_ms": 0.29,
-          "max_ms": 0.33,
+          "p50_ms": 0.34,
+          "max_ms": 0.36,
           "volatile_paths": [
             "$.uptimeSeconds"
           ],
@@ -1679,7 +1716,7 @@
         "url": "http://127.0.0.1:8799/legacy/health",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.36,
+        "elapsed_ms": 0.63,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1687,7 +1724,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "39",
           "cache-control": "no-store"
@@ -1703,7 +1740,7 @@
         "url": "http://127.0.0.1:8799/next/health",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.33,
+        "elapsed_ms": 0.36,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1711,7 +1748,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "39",
           "cache-control": "no-store"
@@ -1780,8 +1817,8 @@
         }
       },
       "error": null,
-      "previous_hash": "c85c30b7f05996b36c5b032210ed330146c51afd0e9e1004008d102f66f2b7b2",
-      "hash": "0a5a660c0b120e4268ad15eac2ad5f5a019f939dd83eca82ca313c2e3370b6ed"
+      "previous_hash": "22661b9d05de52aa678261f68050f31928e63b655cbf6ed47c01d382e2290d96",
+      "hash": "921ec558041d201efcde841e7a59d1197b518ee85eb7b994961ab85139612bac"
     },
     {
       "case": {
@@ -1797,6 +1834,7 @@
       "verdict": "WARN",
       "checks": [
         {
+          "rule": "PG3001",
           "name": "status",
           "passed": true,
           "detail": ""
@@ -1815,8 +1853,8 @@
             200,
             200
           ],
-          "p50_ms": 0.33,
-          "max_ms": 0.33,
+          "p50_ms": 0.44,
+          "max_ms": 0.61,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1828,8 +1866,8 @@
             503,
             200
           ],
-          "p50_ms": 0.21,
-          "max_ms": 0.28,
+          "p50_ms": 0.4,
+          "max_ms": 0.81,
           "volatile_paths": [],
           "detail": "status varied across identical calls: [200, 503]"
         }
@@ -1838,7 +1876,7 @@
         "url": "http://127.0.0.1:8799/legacy/inventory/sync-status",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.33,
+        "elapsed_ms": 0.61,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1846,7 +1884,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "32",
           "cache-control": "no-store"
@@ -1862,7 +1900,7 @@
         "url": "http://127.0.0.1:8799/next/inventory/sync-status",
         "method": "GET",
         "status": 200,
-        "elapsed_ms": 0.28,
+        "elapsed_ms": 0.4,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1870,7 +1908,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "32",
           "cache-control": "no-store"
@@ -1884,8 +1922,8 @@
       },
       "schema": {},
       "error": "parity comparison skipped: candidate is FLAKY_STATUS across 3 identical calls. Stabilise the endpoint before trusting any diff taken from it.",
-      "previous_hash": "0a5a660c0b120e4268ad15eac2ad5f5a019f939dd83eca82ca313c2e3370b6ed",
-      "hash": "1be6728adcf93dafc22a89d1d85a6a1901864148ac808efacf0bde8070a223b2"
+      "previous_hash": "921ec558041d201efcde841e7a59d1197b518ee85eb7b994961ab85139612bac",
+      "hash": "b4e3f6401b3454e68a11e60bf862b12d595faf5808864aa6ac767a1dec1f2cde"
     },
     {
       "case": {
@@ -1901,11 +1939,13 @@
       "verdict": "FAIL",
       "checks": [
         {
+          "rule": "PG3007",
           "name": "graphql_errors",
           "passed": false,
           "detail": "the response carries GraphQL errors: Cannot resolve field 'stock' on type 'Product'"
         },
         {
+          "rule": "PG3002",
           "name": "status_parity",
           "passed": true,
           "detail": ""
@@ -1913,24 +1953,28 @@
       ],
       "drifts": [
         {
+          "rule": "PG1004",
           "path": "$.data.products[].price",
           "kind": "TYPE_CHANGED",
           "severity": "breaking",
           "detail": "incompatible type change (['number'] -> ['string'])"
         },
         {
+          "rule": "PG1001",
           "path": "$.data.products[].stock",
           "kind": "FIELD_REMOVED",
           "severity": "breaking",
           "detail": "present in baseline but absent from candidate (was always present)"
         },
         {
+          "rule": "PG1007",
           "path": "$.data.products[].internalCost",
           "kind": "FIELD_ADDED",
           "severity": "additive",
           "detail": "new in candidate; harmless for consumers that ignore unknown fields"
         },
         {
+          "rule": "PG1007",
           "path": "$.data.products[].warehouseId",
           "kind": "FIELD_ADDED",
           "severity": "additive",
@@ -1939,6 +1983,7 @@
       ],
       "differences": [
         {
+          "rule": "PG2004",
           "path": "$.errors",
           "kind": "EXTRA_IN_CANDIDATE",
           "baseline": null,
@@ -1961,8 +2006,8 @@
             200,
             200
           ],
-          "p50_ms": 0.33,
-          "max_ms": 0.34,
+          "p50_ms": 0.42,
+          "max_ms": 0.51,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         },
@@ -1974,8 +2019,8 @@
             200,
             200
           ],
-          "p50_ms": 0.5,
-          "max_ms": 0.51,
+          "p50_ms": 0.43,
+          "max_ms": 0.46,
           "volatile_paths": [],
           "detail": "identical status, shape and body across all samples"
         }
@@ -1984,7 +2029,7 @@
         "url": "http://127.0.0.1:8799/legacy/graphql",
         "method": "POST",
         "status": 200,
-        "elapsed_ms": 0.32,
+        "elapsed_ms": 0.51,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -1992,7 +2037,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "298",
           "cache-control": "no-store"
@@ -2033,7 +2078,7 @@
         "url": "http://127.0.0.1:8799/next/graphql",
         "method": "POST",
         "status": 200,
-        "elapsed_ms": 0.38,
+        "elapsed_ms": 0.46,
         "attempts": 1,
         "redirects": [],
         "json_error": null,
@@ -2041,7 +2086,7 @@
         "request_headers": {},
         "response_headers": {
           "server": "parity-gate-mock Python/3.13.5",
-          "date": "Mon, 14 Sep 2026 01:56:34 GMT",
+          "date": "Mon, 14 Sep 2026 02:16:57 GMT",
           "content-type": "application/json",
           "content-length": "434",
           "cache-control": "no-store"
@@ -2296,8 +2341,8 @@
         }
       },
       "error": null,
-      "previous_hash": "1be6728adcf93dafc22a89d1d85a6a1901864148ac808efacf0bde8070a223b2",
-      "hash": "982e4b827dfb9c69064b85a144056d9b822e74774a5a6d858152e30105a23585"
+      "previous_hash": "b4e3f6401b3454e68a11e60bf862b12d595faf5808864aa6ac767a1dec1f2cde",
+      "hash": "eee530873a1e5793d1bafb2e1cab681a2886bfcb2bcb5c6657cb2c76b956361d"
     }
   ]
 }
