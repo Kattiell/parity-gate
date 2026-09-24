@@ -34,16 +34,37 @@ endpoint used to answer `404`; the deploy made it answer `200` with an empty
 body, and the gate caught it without anyone having predicted that specific
 failure.
 
----
+## Start here
+
+```bash
+git clone https://github.com/Kattiell/parity-gate
+cd parity-gate
+pip install -e .
+
+parity-gate demo --mode contract     # the run above, offline, against a bundled mock
+```
+
+Then **[docs/QUICKSTART.md](docs/QUICKSTART.md)** puts it on your own API in
+about ten minutes: four commands, the output you should see at each one, and a
+troubleshooting table. There is no code to write, only one TOML file.
+
+## Which mode is yours
+
+| You have | Compared against | Command |
+| --- | --- | --- |
+| One API in production, no rewrite planned | its own shape, recorded earlier | `record`, then `run` |
+| An API nobody has measured yet | its own repeated answers | `stability` |
+| A rewrite replacing a live service | the old service | `run`, with two targets |
+
+The first row is the common case, and the one most tools do not serve: it needs
+nothing but the API you already have.
 
 ## The problem
 
 APIs rarely break because a test failed. They break because the shape moved and
 nothing was watching. A field becomes a string, a never-null value comes back
 null, a `404` quietly becomes a `200`, and the consumers find out in
-production. Contract drift is consistently named the top non-bug API failure in
-enterprise systems, and automated detection is what takes time-to-detection from
-weeks down to minutes.
+production.
 
 Almost every team knows this. Almost none check it, for three reasons:
 
@@ -57,28 +78,16 @@ Almost every team knows this. Almost none check it, for three reasons:
    harnesses get switched off within a quarter.
 
 `parity-gate` exists because of 2 and 3. **The engineering is in the
-signal-to-noise ratio**, not in the diff.
+signal-to-noise ratio**, not in the diff. How that is done, finding by finding,
+is in [docs/design.md](docs/design.md).
 
-## Three things it does
+## What it does
 
-### 1. Gate every deploy against the shape you already ship
-
-The common case: one API, real consumers, no rewrite in sight.
-
-```bash
-cp suites/example-api.toml suites/my-api.toml  # a commented starter suite
-parity-gate record --suite suites/my-api.toml  # once: captures today's shape
-git add suites/my-api.toml suites/contracts/   # review the contract, commit it
-parity-gate run --suite suites/my-api.toml     # every deploy, in CI
-```
-
-The recorded contract holds **types, requiredness and the status codes each
-endpoint answered with**, never values. That is the whole trick against
-golden-file rot: your catalogue changes daily, its *shape* does not. A recorded
-contract stays valid until someone actually changes the API, which is exactly
-when you want to hear about it.
-
-It is written one field per line so the diff is the review:
+**Gates a deploy against the shape you already ship.** The recorded contract
+holds types, requiredness and the status codes each endpoint answered with,
+never values. That is the whole trick against golden-file rot: your catalogue
+changes daily, its *shape* does not. It is written one field per line so the
+diff is the review:
 
 ```diff
 -  {"path": "$.products[].price", "types": ["number"], "required": true},
@@ -86,32 +95,9 @@ It is written one field per line so the diff is the review:
 -  {"path": "$.products[].stock", "types": ["integer"], "required": true},
 ```
 
-### 2. Find out which endpoints you can't trust yet
-
-Before writing a single assertion against an API:
-
-```
-$ parity-gate stability --suite suites/api.toml
-
-sampling demo-catalog (6 cases x 3 calls)
-
-  PASS  CAT-001   Product listing keeps its pagination envelope a...
-  PASS  CAT-002   Product detail is byte-for-byte unchanged (not ...
-  WARN  OPS-001   Health endpoint answers and reports uptime          - volatile_body
-  FAIL  OPS-002   Inventory sync status is stable enough to be co...  - flaky_status
-
-verdict   FAIL
-stability 1 unstable, 1 merely noisy
-
-Noise found. Add to [policy] in the suite so it stops being reported:
-mask_paths = [
-  "$.uptimeSeconds",
-]
-```
-
-Timing and test data are behind the large majority of flaky failures, and the
-usual response is to retry until it goes green. This calls each endpoint N times
-and classifies what varied, so the two get separated:
+**Tells you which endpoints you can trust**, before you assert anything against
+them. `stability` calls each endpoint N times and classifies what varied, so
+"this test is flaky" and "this endpoint is flaky" stop being the same sentence:
 
 | Verdict | Meaning | What to do |
 | --- | --- | --- |
@@ -120,242 +106,18 @@ and classifies what varied, so the two get separated:
 | `FLAKY_SHAPE` | The structure itself varies | Fix before writing tests against it |
 | `FLAKY_STATUS` | The status code varies | Fix first; nothing else from this endpoint means anything |
 
-No assertions are evaluated here. It measures the endpoints, not your
-expectations.
+Across runs rather than across calls, `parity-gate history` reads the bundles CI
+already produced and separates an intermittent failure from a real regression.
 
-**Across runs, not only across calls.** Three calls in a row cannot see a
-cache that expires hourly or a replica that rotates. `repeat_interval_ms`
-spaces the samples out, and the runs CI already makes are the slower
-repetition: every bundle records each case's verdict and the revision under
-test, so the history of an evidence directory answers what sampling cannot.
-An illustrative run over fourteen CI bundles:
+**Proves a rewrite matches the service it replaces.** Two live services, same
+requests, and here values are diffed too, because a live baseline is an oracle
+no hand-written expectation can match. It catches the pagination counter that
+says 3 while returning 4 items.
 
-```
-$ parity-gate history evidence/ --fail-on-intermittent
-
-  INTERMITTENT catalog/OPS-002      14 runs, 5 flip(s); revision 3f2a1c9d0b1e gave FAIL, PASS
-  REGRESSED    catalog/CAT-001      14 runs, 1 flip(s)
-
-cases     1 intermittent, 1 regressed, 0 recovered, 12 steady
-```
-
-| History | Meaning |
-| --- | --- |
-| `INTERMITTENT` | Changed outcome and changed back, or two runs of the **same revision** disagreed |
-| `REGRESSED` | Passed, then failed and kept failing: a change, not noise |
-| `RECOVERED` | Failed, then passed and kept passing |
-| `STEADY` | The same outcome every run |
-
-Only bundles that still pass `verify` are read, and the revision comes from
-`--revision` or the usual CI variables (`GITHUB_SHA`, `CI_COMMIT_SHA`,
-`BUILD_SOURCEVERSION`, `GIT_COMMIT`). Keep enough bundles for it to matter:
-`--keep 30` rather than `--keep 1`.
-
-### GraphQL, without lying about what is a read
-
-A GraphQL endpoint is JSON over HTTP, so everything above applies, but two
-things HTTP gives for free are missing, and both need handling rather than
-ignoring.
-
-```toml
-[[cases]]
-id = "GQL-001"
-path = "/graphql"
-graphql = """
-query Products { products { id title price stock } }
-"""
-```
-
-**Every operation is a POST.** If the write gate went by method, every query
-would have to be declared a mutation, and a safety control everyone switches
-off protects nothing. The operation type is read from the document instead: a
-`query` runs as a read, a `mutation` still needs `mutating = true` *and*
-`--allow-mutations`.
-
-**Every response is 200**, including the failures, so the check that catches a
-`404` softened into a `200` has nothing to work with here. The equivalent
-signal is the `errors` array, and it is checked explicitly:
-
-```
-FAIL  GQL-001   Product query keeps its shape   - 2 breaking drift; failed: graphql_errors
-
-- `graphql_errors`: the response carries GraphQL errors:
-  Cannot resolve field 'stock' on type 'Product'
-
-| breaking | TYPE_CHANGED  | $.data.products[].price | ['number'] -> ['string'] |
-| breaking | FIELD_REMOVED | $.data.products[].stock | was always present       |
-```
-
-A status-based check would have called that run green.
-
-### Already have an OpenAPI spec?
-
-Then the endpoint list is written down already, and typing it into TOML is the
-largest piece of friction in adopting any gate:
-
-```bash
-parity-gate import-openapi --spec https://api.example.com/openapi.json \
-                           --out suites/api.toml
-```
-
-Reads JSON (what FastAPI, Spring and Swagger UI serve live), emits a case per
-safe operation, uses the `example` from each path parameter, and **comments out
-the cases it cannot fill in rather than inventing an id**: a case that fails
-for the wrong reason is worse than one that does not run. Writes are left out
-unless you pass `--include-writes`.
-
-### 3. Prove a rewrite matches the service it replaces
-
-The migration case: two live services, same requests, honest comparison.
-
-```bash
-parity-gate run --suite suites/migration.toml   # baseline = old, candidate = new
-```
-
-Here it also diffs *values*, because a live baseline is an oracle no hand-written
-expectation can match. It catches the pagination counter that says 3 while
-returning 4 items.
-
----
-
-## Try it offline, in one second
-
-```bash
-git clone https://github.com/Kattiell/parity-gate
-cd parity-gate
-pip install -e ".[dev]"
-
-parity-gate demo --mode contract         # gate against a recorded contract
-parity-gate demo --mode stability        # measure the noise
-parity-gate demo                         # differential, two live services
-pytest -q                                # 279 tests, no network
-```
-
-All of it runs against a bundled mock that serves a catalogue API twice: once
-as it was, once as rewritten with defects planted on purpose. Nothing leaves the
-machine.
-
-### Against a real API over the network
-
-```bash
-parity-gate run --suite suites/live-self-parity.toml
-```
-
-That one compares a live public API **against itself**. It should come back all
-green, and that is the point: it is the control experiment. Whatever it reports
-as volatile is noise you would otherwise have chased.
-
-## Point it at your own API in about five minutes
-
-The demo proves the tool works. This is the part that makes it yours. There is
-no code to write: the whole configuration is one TOML file.
-
-```bash
-cp suites/example-api.toml suites/my-api.toml
-```
-
-[`suites/example-api.toml`](suites/example-api.toml) is a commented starter that
-works unchanged against a public demo API, so you can run the full cycle once
-before trusting it with anything of yours. Three lines to change, all marked in
-the file: where the contract file goes, your `base_url`, and `allowed_hosts`.
-
-**1. Find out what you can trust before you assert anything.**
-
-```bash
-parity-gate stability --suite suites/my-api.toml
-```
-
-It calls each endpoint three times and tells you which ones answer differently
-to identical calls. If it prints a `mask_paths` block, paste it into `[policy]`:
-those are the fields that move on their own, and diffing them is how a gate
-becomes noise. Fix anything reported `FLAKY_STATUS` before going further:
-nothing measured from an endpoint like that means anything.
-
-**2. Record the shape it has today.**
-
-```bash
-parity-gate record --suite suites/my-api.toml
-```
-
-Read the file it writes. It is one field per line precisely so you can: this is
-the moment to notice that something you thought was required is optional, or
-that a field you meant to remove last quarter is still there. Then commit it.
-
-**3. Gate on it.**
-
-```bash
-parity-gate run --suite suites/my-api.toml --strict
-```
-
-Exit code `2` stops a pipeline. In CI:
-
-```yaml
-- name: API contract gate
-  run: parity-gate run --suite suites/my-api.toml --strict --keep 20
-  env:
-    MY_API_TOKEN: ${{ secrets.STAGING_TOKEN }}
-```
-
-**4. When it fails, read `report.md` in the evidence directory**. It names the
-path, the severity, and what a consumer would experience. If the change was
-intended, re-record and commit the new contract; the diff is the review.
-
-Working on one endpoint? `--filter 'PROD-*'` or `--filter REQ-CATALOG-01`
-narrows the run without editing the suite.
-
-## How the noise is handled
-
-This is the part that decides whether a gate is still switched on in six months.
-
-**Volatile paths are masked, and the masks are discovered for you.** Request ids
-and timestamps differ by definition. The tool samples, sees what moved, and
-prints the `mask_paths` block ready to paste.
-
-**Collections are matched by identity, not position.** Tell it
-`"$.products" = "id"` and item `id=7` is compared with item `id=7`. Without it, a
-reordered page of four products reports a difference on every field of every
-item and the one real regression is invisible.
-
-**Reordering is one finding.** Not one per index.
-
-**Stability is measured before anything is compared.** A diff taken from a flaky
-endpoint is not evidence of anything, so the tool refuses to produce one and
-says why.
-
-**Connections are reused.** A suite sampling each endpoint three times against
-two targets used to pay for a TLS handshake every single call. Measured against
-a live HTTPS API, same network, same minute:
-
-```
-12 calls, connection reused : 0.20s   (16 ms/call)
-12 calls, fresh socket each : 1.25s  (104 ms/call)
-```
-
-The demo run makes 36 requests over **one** TCP connection, which a test
-asserts by counting sockets at the server rather than taking the client's word
-for it.
-
-**Redundant findings are folded.** Four products whose `price` changed type is
-one contract-drift finding, not four value differences. The count of what was
-folded is reported, so nothing vanishes silently.
-
-**An empty collection is "not checked", not "removed".** When today's filter
-matches nothing, the item fields were not deleted; nothing was learned about
-them. Reporting that as a breaking change is how a gate gets switched off in
-its first week, so those paths are listed separately instead.
-
-**A configuration that could not be honoured says so.** Ask for identity
-matching on a collection whose key is not unique on both sides and you get a
-`KEY_MATCH_UNAVAILABLE` finding, not a silent fall back to positional
-comparison and noise you would have blamed on the API.
-
-**Drift is classified by consumer impact, not by "changed".**
-
-| Severity | Example | Why |
-| --- | --- | --- |
-| `breaking` | `number` → `string`, a required field removed, a field that can now be `null` | Existing consumers fail |
-| `risky` | `integer` → `number`, a type narrowed | Usually survivable, worth a look |
-| `additive` | A new field | Ignored by well-behaved clients |
+GraphQL is supported, with the operation type read from the document and the
+`errors` array checked explicitly, since every GraphQL response is a `200`. If
+you publish an OpenAPI document, `import-openapi` writes the starter suite for
+you.
 
 ## Evidence, not opinions
 
@@ -371,165 +133,32 @@ Every run writes a bundle:
 
 Each record is hashed together with the hash of the record before it, so a
 report edited after the fact is detectable. A real bundle is committed under
-[`docs/evidence/`](docs/evidence/) and verifies:
-
-```bash
-parity-gate verify docs/evidence
-```
+[`docs/evidence/`](docs/evidence/) and verifies with `parity-gate verify
+docs/evidence`.
 
 Cases carry a `requirement` id, which produces a traceability matrix in every
-report: requirement → cases → worst verdict.
-
-Every finding carries a stable rule id (`PG1004` is a type change, `PG3006` a
-forbidden field) from the [rule catalogue](docs/rules.md). Ids are never
-renumbered, so anything keyed on them keeps working across versions.
-
-## Measuring the gate itself
-
-A gate is trusted for what it has been shown to catch, so it is measured the
-way any detector is: inject a fixed fault model into real responses, count
-what it catches, and count how often it cries wolf.
-
-```
-$ parity-gate selftest --demo
-
-  fault (must fail)     mode           injected  caught  missed
-  TYPE_SWAP             differential         40      40       0
-  NULL_INJECT           contract             40      40       0
-  STATUS_CHANGE         contract              7       7       0
-  ...
-  control (must not)    mode           injected    fine  alarms
-  VALUE_CHANGE          contract             40      40       0
-  COLLECTION_EMPTY      contract              7       7       0
-  ...
-
-differential  detection 100.0% (187/187)   false alarms   0.0% (0/20)
-contract      detection 100.0% (137/137)   false alarms   0.0% (0/70)
-```
-
-| Faults: the case must fail | Controls: the case must not fail |
-| --- | --- |
-| A value changes JSON type | A value changes in contract mode (shape only) |
-| A value becomes null | A collection loses an item, or comes back empty, in contract mode |
-| An always-present field is missing | A collection comes back in another order |
-| The status code changes | A new field appears |
-| A value changes, an item is dropped or a page is empty, in differential mode | A value under a mask path changes |
-
-Each fault is applied at one site (the first occurrence of each path, because
-"one row of the page is wrong" is how these defects ship), and every mutant
-goes through the same judging functions a real run uses rather than a copy
-of their rules. The controls are what keep the number honest: a gate that
-failed every change would score 100% detection and be switched off in a week.
-
-Its first run found a real false negative. One product of four whose `price`
-came back as a string made the field's types the union `number | string`,
-which was classified as a *risky widening* and passed with a warning. The
-consumer parsing that product fails all the same; it is now `breaking`.
-
-Against your own API, `parity-gate selftest --suite suites/my-api.toml` samples
-each case once, read-only and under the same safety policy, and exits `2` when
-detection drops below `--min-detection` (default 100%) or false alarms rise
-above `--max-false-alarms` (default 0%).
-
-## Writing a suite
-
-One TOML file. Two targets, a safety policy, the cases.
-
-```toml
-name = "catalog"
-
-[targets.baseline]
-snapshot = "contracts/catalog.json"     # a recording…
-# base_url = "https://api-v1.example.com"   # …or the old service, for a migration
-
-[targets.candidate]
-base_url = "https://api.staging.example.com"
-auth = "env:PARITY_TOKEN"               # the variable name, never the value
-
-[policy]
-allowed_hosts = [".staging.example.com"]   # mandatory; no implicit allow-all
-allow_mutations = false
-repeats = 3                             # samples per endpoint, for stability
-max_retries = 0                         # a retried 503 hides the flakiness
-workers = 1                             # raise it deliberately; it is someone's staging
-timeout_seconds = 10                    # a deadline for the whole response, not per read
-max_response_bytes = 10485760           # a runaway body is refused, not loaded
-repeat_interval_ms = 0                  # space the samples out to see slower flakiness
-max_waiver_days = 90                    # no waiver may be dated further out than this
-mask_paths = ["$.meta.requestId", "$.*.updatedAt"]
-
-[policy.array_keys]
-"$.products" = "id"                     # compare by identity, not position
-
-[[cases]]
-id = "CAT-001"
-requirement = "REQ-CAT-01"              # feeds the traceability matrix
-title = "Product listing keeps its pagination envelope"
-risk = "critical"
-method = "GET"
-path = "/products?limit=4"
-required_fields = ["$.products", "$.total"]
-forbidden_fields = ["$.products[].internalCost"]
-max_latency_ms = 2000
-```
-
-Paths are written as `$.products[].id`. A mask written with `[]` covers every
-item, whether the tool addressed it as `[0]` or `[id=7]`.
-
-### Accepting a finding on the record
-
-Sometimes a finding is known and accepted for a while: a field retired on
-purpose, a consumer already migrated. Deleting the assertion removes the check
-along with the noise, and running without `--strict` forever hides the next
-real problem. A waiver says it instead, in the suite, where it is reviewed
-like code:
-
-```toml
-[[waivers]]
-rule = "PG1001"                          # or its name, FIELD_REMOVED
-case = "CAT-*"                           # glob over case ids (default: all)
-path = "$.products[].stock"              # glob over the finding path (default: all)
-owner = "storefront-team"
-expires = 2026-10-31
-ticket = "CAT-4412"
-reason = "stock moved to the availability endpoint; storefront v5 no longer reads it"
-```
-
-- A waived finding still appears in every report, and in SARIF as a
-  suppressed alert carrying the justification. A case whose only failures
-  are waived ends as `WARN`, never `PASS`.
-- **After `expires` it waives nothing**, and the run names the lapsed waiver
-  and its owner. A waiver that matched no finding is listed as unused.
-- `owner`, `expires` and `reason` are required, and a date beyond
-  `policy.max_waiver_days` (90 by default) is refused.
-- Only findings about the API can be waived. An unstable endpoint or a case
-  that could not be judged is not something to accept; it is something to fix.
+report, and every finding carries a stable rule id (`PG1004` is a type change)
+from the [rule catalogue](docs/rules.md). Ids are never renumbered.
 
 ## Safety
 
 A QA tool gets handed credentials and pointed at internal services. Full threat
 model in [SECURITY.md](SECURITY.md); the controls:
 
-- **Host allow-list is mandatory.** No implicit allow-all, and every redirect
-  hop is re-validated: a staging host that 302s to production is not followed.
-- **Production is refused by name.** A host containing `prod`/`prd`/`producao`
-  needs `--allow-production`, out loud.
-- **Writes are doubly gated.** `POST`/`PUT`/`PATCH`/`DELETE` run only when the
-  case declares `mutating = true` *and* the run passes `--allow-mutations`.
-- **Private networks are opt-in.**
-- **Credentials do not cross hosts.** A redirect to a different host is
-  followed only after re-validation, and the `Authorization` and `Cookie`
-  headers are dropped before it is: a token issued for one host has no business
-  reaching another, even one that is also on the allow-list.
-- **Fail before sending.** Every URL and method is validated up front; a
-  misconfigured run makes zero requests.
-- **Credentials never touch the suite file.** A suite containing something
-  shaped like a live token is refused, and `parity-gate scan` runs the same
-  check over any path, including in this project's own CI.
+- **Host allow-list is mandatory**, and every redirect hop is re-validated: a
+  staging host that 302s to production is not followed.
+- **Production is refused by name.** A host containing `prod`, `prd` or
+  `producao` needs `--allow-production`, out loud.
+- **Writes are doubly gated**, by the case and by the run. **Private networks
+  are opt-in.**
+- **Credentials do not cross hosts**: the `Authorization` and `Cookie` headers
+  are dropped before a redirect to a different host is followed.
+- **Fail before sending.** A misconfigured run makes zero requests.
+- **Credentials never touch the suite file**, and `parity-gate scan` runs that
+  same check over any path, including in this project's own CI.
 - **Everything written to disk is redacted first**: sensitive headers and JSON
-  keys, known token shapes, and personal data (e-mail, CPF, CNPJ, card numbers).
-  An integration test asserts a token supplied through the environment never
-  reaches the evidence.
+  keys, known credential shapes, and personal data. An integration test asserts
+  that a value supplied through the environment never reaches the evidence.
 
 ## In CI
 
@@ -547,9 +176,8 @@ model in [SECURITY.md](SECURITY.md); the controls:
     category: parity-gate
 ```
 
-The upload step needs `permissions: security-events: write`. Code scanning is
-available on public repositories; private ones need GitHub Code Security. The
-same file opens in any SARIF viewer, so the annotations do not depend on it.
+The upload step needs `permissions: security-events: write`. The same file
+opens in any SARIF viewer, so the annotations do not depend on it.
 
 | Exit code | Meaning |
 | --- | --- |
@@ -564,7 +192,7 @@ same file opens in any SARIF viewer, so the annotations do not depend on it.
 parity-gate record    --suite FILE [--out PATH] [--from URL]   # capture today's shape
 parity-gate run       --suite FILE [--strict] [--evidence DIR] # gate against it
 parity-gate stability --suite FILE                             # measure the noise
-parity-gate import-openapi --spec SPEC --out FILE               # a suite from a spec
+parity-gate import-openapi --spec SPEC --out FILE              # a suite from a spec
 parity-gate selftest  (--demo | --suite FILE)                  # measure what the gate catches
 parity-gate history   DIR [--fail-on-intermittent]             # flaky, regressed or recovered, across runs
 parity-gate verify    DIR                                      # re-check an evidence bundle
@@ -573,77 +201,36 @@ parity-gate demo      [--mode MODE]                            # offline, bundle
 parity-gate mock      [--port 8799]                            # serve the mock by hand
 ```
 
-`record`, `run` and `stability` also take:
+Shared flags (`--filter`, `--keep`, `--sarif`, `--revision`) are in
+[docs/suite-reference.md](docs/suite-reference.md). If the `parity-gate` script
+is not on your `PATH`, `python -m parity_gate` is the same program.
 
-| Flag | What it does |
-| --- | --- |
-| `--filter PATTERN` | run a subset: a glob against a case id or requirement, or a substring of the title. Repeatable. `--filter 'CAT-*'`, `--filter REQ-SEC-01`, `--filter orders` |
-| `--keep N` | keep only the N most recent evidence bundles and delete the rest. Off by default; only directories carrying a manifest are ever touched |
-| `--sarif PATH` | `run` and `stability`: also write the SARIF log to a fixed path, for an upload step |
-| `--revision SHA` | `run` and `stability`: the revision under test, for `history`; read from the CI environment when omitted |
+## Built to be read
 
-If the `parity-gate` script is not on your `PATH` (common on Windows, where
-`pip` installs it under `Scripts\`), `python -m parity_gate` is the same
-program and takes the same arguments.
-
-## How it is built
-
-Standard library only. No `requests`, no `pyyaml`, no diff library. A tool that
-exists to be trusted about someone else's code should be readable end to end,
-and installing it should pull nothing.
-
-| Module | Responsibility |
-| --- | --- |
-| `schema.py` | Infer a contract from samples; classify drift by consumer impact |
-| `contracts.py` | Record, store and reload a contract as a reviewable file |
-| `graphql.py` | Operation type from the document; errors as the missing status code |
-| `openapi.py` | A starter suite from a spec, with what it cannot fill in commented out |
-| `differ.py` | Value diff with masking, identity matching and ordering as one finding |
-| `flaky.py` | Stability triage and automatic mask suggestion |
-| `safety.py` | Host allow-list, production guard, write gating, secret scan |
-| `redaction.py` | Everything leaving the process, scrubbed |
-| `evidence.py` | Hash-chained records, manifest, traceability matrix, verification |
-| `report.py` | Markdown for tickets, self-contained HTML for CI |
-| `sarif.py` | SARIF 2.1.0, located on the contract line or the suite case |
-| `rules.py` | The stable rule catalogue every finding is reported under |
-| `selftest.py` | Fault injection against the real judging code: detection and false-alarm rates |
-| `waivers.py` | Accepted findings with an owner, a reason and an expiry that is enforced |
-| `history.py` | Cross-run classification from verified bundles: intermittent, regressed, recovered |
-| `httpclient.py` | Pooled `http.client`: response deadline and size cap, retries, re-validated redirects |
-| `runner.py` | Orchestration, and pure judging functions with the verdict rules in one place |
-| `mock/server.py` | The two-headed demo API, deterministic down to the flaky endpoint |
-
-**279 tests**, unit and integration, offline. [CI](.github/workflows/ci.yml)
-runs them on Python 3.11, 3.12 and 3.13, on Linux and Windows, next to lint,
+Standard library only: no `requests`, no `pyyaml`, no diff library. **279
+tests**, offline, on Python 3.11 to 3.13, Linux and Windows, next to lint,
 format, type checking, a credential scan of the repository, a check that the
-committed evidence bundle still verifies and the selftest above; the badge at
-the top is the honest answer to whether it is currently green.
+committed evidence still verifies, and a selftest that injects a fixed fault
+model into real responses and fails if detection drops below 100% or false
+alarms rise above 0%. The badge at the top is the honest answer to whether that
+is currently green.
 
-The integration suite boots the mock and asserts that each planted defect is the
-finding that comes out, including two control experiments that must produce
-nothing: a service compared against itself, and a service checked against its
-own recording.
-
-This has been through an adversarial review whose first instruction was *make it
-report PASS on a change that would break a real consumer*. It found two ways.
-Both are fixed, both now have a regression test, and the write-up
-(including the findings that were **not** fixed) is in
-[docs/review-2026-09-12.md](docs/review-2026-09-12.md).
+It has been through two adversarial reviews whose first instruction was *make
+it report PASS on a change that would break a real consumer*. They found two
+ways, plus a false negative the selftest caught on its own first run. All of it,
+including what is still open, is in the [review log](docs/review-log.md).
 
 ## Documentation
 
-- [Test strategy](docs/test-strategy.md): risk analysis, scope, oracles and
-  their limits, entry and exit criteria
-- [ADR-001](docs/adr-001-differential-over-golden-files.md): why not golden
-  files, and why the oracle is a running service
-- [ADR-002](docs/adr-002-record-shape-not-values.md): why a recorded contract
-  holds shape and status but never values, and how that removes the rot
+- [Quickstart](docs/QUICKSTART.md): from clone to a gate in your CI, step by step
+- [Suite reference](docs/suite-reference.md): every field of the suite file, plus waivers
+- [Design](docs/design.md): noise handling, flakiness across runs, how the gate measures itself, module map
 - [Rule catalogue](docs/rules.md): every finding id and its consumer impact
+- [Test strategy](docs/test-strategy.md): scope, oracles and their limits, exit criteria
+- [ADR-001](docs/adr-001-differential-over-golden-files.md): why not golden files
+- [ADR-002](docs/adr-002-record-shape-not-values.md): why a contract holds shape and status, never values
+- [Review log](docs/review-log.md): what the adversarial reviews broke, what was fixed, what is open
 - [SECURITY.md](SECURITY.md): threat model and controls
-- [Review findings](docs/review-2026-09-12.md): an adversarial review, what it
-  broke, what was fixed, and what is still open
-- [Second review](docs/review-2026-09-13.md): the CI that did not exist, three
-  robustness defects, and the false negative the selftest found
 - [Sample evidence bundle](docs/evidence/): report, machine record, manifest
 - Bug reports written from real findings:
   [BUG-001](docs/bugs/BUG-001-price-serialised-as-string.md) ·
@@ -657,20 +244,15 @@ out and hard to trust afterwards.
 
 | If you have | Use | Why |
 | --- | --- | --- |
-| A maintained OpenAPI spec and you want the implementation checked against it | **Schemathesis**, **Dredd** | They answer "does the code match the spec". This answers "did the code change"; the spec is not the oracle here, yesterday's behaviour is. `import-openapi` gets you a suite from the spec, and then the two descriptions can be compared |
-| Consumers who can publish their expectations | **Pact** | Consumer-driven contracts are a stronger guarantee: they encode what each consumer actually uses. They also need every consumer to cooperate and a broker to run. This needs neither, and gives you less |
-| Budget and a team that wants API diffing as a product | **Optic** | Adjacent ground, more mature, commercial. This is a CLI with no dependencies and an evidence trail built for a QA workflow |
-| gRPC or Protobuf | **buf breaking**, **Protolock** | Schema-first by construction; the breaking-change check belongs in the schema toolchain, not here |
-| Long-lived streams (websockets, SSE, GraphQL subscriptions) | Something else | Not supported, and a subscription is refused at load time with that reason rather than half-working |
+| A maintained OpenAPI spec and you want the implementation checked against it | **Schemathesis**, **Dredd** | They answer "does the code match the spec". This answers "did the code change"; the spec is not the oracle here, yesterday's behaviour is |
+| Consumers who can publish their expectations | **Pact** | Consumer-driven contracts are a stronger guarantee. They also need every consumer to cooperate and a broker to run |
+| Budget and a team that wants API diffing as a product | **Optic** | Adjacent ground, more mature, commercial |
+| gRPC or Protobuf | **buf breaking**, **Protolock** | Schema-first by construction; the check belongs in that toolchain |
+| Long-lived streams (websockets, SSE, GraphQL subscriptions) | Something else | Not supported, and refused at load time with that reason rather than half-working |
 
 Where this earns its place: **one API, real consumers, and no spec anyone
 trusts.** No broker, no code generation, no consumer cooperation, nothing to
 install. One TOML file and `record`.
-
-And the second reason, which is the QA half rather than the dev half: the
-output is built to survive a ticket. A hash-chained bundle, a requirement
-traceability matrix, and a report that names the consumer consequence rather
-than printing a diff.
 
 ## Limits
 
@@ -678,22 +260,17 @@ Worth stating plainly, because a tool that oversells itself gets trusted in the
 wrong places:
 
 - **It checks shape and status, not correctness.** A recorded contract says what
-  the API looked like, not that it was right. In differential mode, a bug
-  faithfully reproduced by both sides passes.
+  the API looked like, not that it was right.
 - **A recording is only as good as the day it was taken.** Record from a version
-  you actually believe in, and review the file before committing it.
-- **Stability is sampled, not proven.** Repeats within one run find frequent
-  flakiness; `repeat_interval_ms` and `history` widen the window, but a period
-  longer than the runs you keep is still invisible.
+  you believe in, and read the file before committing it.
+- **Stability is sampled, not proven.** `repeat_interval_ms` and `history`
+  widen the window, but a period longer than the runs you keep is invisible.
 - **The selftest measures a fixed fault model.** 100% means every fault in that
   model is caught, not that every possible defect is.
-- **Redaction is pattern-based.** A secret in a format nobody has seen survives
-  it. Read evidence before attaching it to a public issue.
+- **Redaction is pattern-based.** Read evidence before attaching it to a public
+  issue.
 - **gRPC and long-lived streams are out of scope.** It speaks JSON over HTTP;
   GraphQL is supported, subscriptions are not.
-- **A recorded contract is only shape.** Two services that agree on every type
-  and disagree on every value both pass contract mode. Values are compared only
-  in differential mode, where there is a live oracle to compare against.
 
 ## Licence
 

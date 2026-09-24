@@ -66,7 +66,7 @@ Shape does not rot with data, but shape cannot be *observed* through an empty
 collection either. The fix is to treat that subtree as unobserved rather than
 absent, and to report those paths as "not checked" so the gap is visible rather
 than either alarming or silent. See
-[the review](review-2026-09-12.md#blocker--an-empty-collection-read-as-five-breaking-changes).
+[the review log](review-log.md#2026-09-12).
 
 ## Recording status codes as part of the contract
 
