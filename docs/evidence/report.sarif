@@ -21,7 +21,7 @@
               "help": {
                 "text": "Consumers that read the field get undefined or crash; if it was always present, typed clients fail to deserialise."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1001",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg1001",
               "defaultConfiguration": {
                 "level": "warning"
               },
@@ -41,7 +41,7 @@
               "help": {
                 "text": "Clients written without a null check for it fail on the responses that omit it."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1002",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg1002",
               "defaultConfiguration": {
                 "level": "warning"
               },
@@ -61,7 +61,7 @@
               "help": {
                 "text": "Null-pointer failures in typed clients and 'null' rendered in UIs."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1003",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg1003",
               "defaultConfiguration": {
                 "level": "warning"
               },
@@ -81,7 +81,7 @@
               "help": {
                 "text": "Parsers reject the payload or silently mis-read it (money as a string is the classic)."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1004",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg1004",
               "defaultConfiguration": {
                 "level": "warning"
               },
@@ -101,7 +101,7 @@
               "help": {
                 "text": "Safe within the numeric family; any other new type is one existing parsers never saw."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1005",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg1005",
               "defaultConfiguration": {
                 "level": "warning"
               },
@@ -121,7 +121,7 @@
               "help": {
                 "text": "Usually harmless; code paths that handled the dropped type go dead."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1006",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg1006",
               "defaultConfiguration": {
                 "level": "warning"
               },
@@ -141,7 +141,7 @@
               "help": {
                 "text": "Ignored by tolerant readers; strict schema validation on the client rejects it."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1007",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg1007",
               "defaultConfiguration": {
                 "level": "note"
               },
@@ -161,7 +161,7 @@
               "help": {
                 "text": "Harmless for consumers."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg1008",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg1008",
               "defaultConfiguration": {
                 "level": "note"
               },
@@ -181,7 +181,7 @@
               "help": {
                 "text": "Consumers see different data after the migration: prices, totals, flags."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2001",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg2001",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -201,7 +201,7 @@
               "help": {
                 "text": "The same parse failure a type drift causes, observed on one concrete value."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2002",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg2002",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -221,7 +221,7 @@
               "help": {
                 "text": "Data disappears for consumers: a row, an attribute, a page entry."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2003",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg2003",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -241,7 +241,7 @@
               "help": {
                 "text": "Consumers see data they did not before, which may be an exposure."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2004",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg2004",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -261,7 +261,7 @@
               "help": {
                 "text": "Pagination, counts and 'no results' states diverge."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2005",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg2005",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -281,7 +281,7 @@
               "help": {
                 "text": "Harmless unless order is part of the contract; then assert on the sort key."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2006",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg2006",
               "defaultConfiguration": {
                 "level": "note"
               },
@@ -301,7 +301,7 @@
               "help": {
                 "text": "Lists render in a different sequence; 'first item' logic changes."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2007",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg2007",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -321,7 +321,7 @@
               "help": {
                 "text": "A configuration problem: differences reported under this collection may be ordering artefacts rather than regressions."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg2008",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg2008",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -341,7 +341,7 @@
               "help": {
                 "text": "Clients branch on status: caching, retries and error screens all change."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3001",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg3001",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -361,7 +361,7 @@
               "help": {
                 "text": "The classic softened error: a 404 that became an empty 200 is cached as data."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3002",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg3002",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -381,7 +381,7 @@
               "help": {
                 "text": "The same softened-error risk, caught without a live baseline."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3003",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg3003",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -401,7 +401,7 @@
               "help": {
                 "text": "Every consumer's parser fails on this response."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3004",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg3004",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -421,7 +421,7 @@
               "help": {
                 "text": "A field a consumer was named as depending on is gone."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3005",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg3005",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -441,7 +441,7 @@
               "help": {
                 "text": "Data exposure: something that must not leave the service does."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3006",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg3006",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -461,7 +461,7 @@
               "help": {
                 "text": "Partial data behind a 200: the status code alone reports success."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3007",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg3007",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -481,7 +481,7 @@
               "help": {
                 "text": "Slower screens and timeouts in clients with tight deadlines."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg3008",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg3008",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -501,7 +501,7 @@
               "help": {
                 "text": "Nothing else measured from this endpoint means anything until it is fixed."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg4001",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg4001",
               "defaultConfiguration": {
                 "level": "warning"
               },
@@ -521,7 +521,7 @@
               "help": {
                 "text": "Consumers see a different structure depending on timing or cache state."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg4002",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg4002",
               "defaultConfiguration": {
                 "level": "warning"
               },
@@ -541,7 +541,7 @@
               "help": {
                 "text": "Noise, not breakage: mask the suggested paths so it stops being compared."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg4003",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg4003",
               "defaultConfiguration": {
                 "level": "note"
               },
@@ -561,7 +561,7 @@
               "help": {
                 "text": "No verdict about the API exists for this case; treat it as unverified."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg5001",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg5001",
               "defaultConfiguration": {
                 "level": "error"
               },
@@ -581,7 +581,7 @@
               "help": {
                 "text": "Its shape is not gated: re-record the contract or stabilise the endpoint."
               },
-              "helpUri": "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md#pg5002",
+              "helpUri": "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md#pg5002",
               "defaultConfiguration": {
                 "level": "warning"
               },
@@ -598,15 +598,15 @@
       "invocations": [
         {
           "executionSuccessful": true,
-          "startTimeUtc": "2026-09-14T02:33:30Z",
-          "endTimeUtc": "2026-09-14T02:33:30Z"
+          "startTimeUtc": "2026-09-24T03:34:14Z",
+          "endTimeUtc": "2026-09-24T03:34:14Z"
         }
       ],
       "properties": {
-        "runId": "20260914T023330Z-706fb7",
+        "runId": "20260924T033414Z-dcb639",
         "mode": "differential",
         "verdict": "FAIL",
-        "chainHead": "c58ec76b96e7449b95857f901409c22d4f66827394cd35cb64cbca7e88065615"
+        "chainHead": "94d0799bd1fb67bf9a6b4d3183b6982b80d666afb3f84f42f6bcf453678a30ac"
       },
       "results": [
         {

@@ -29,7 +29,7 @@ from parity_gate import __version__, rules
 from parity_gate.evidence import ERROR, Record, Run
 
 SCHEMA_URI = "https://json.schemastore.org/sarif-2.1.0.json"
-RULES_URI = "https://github.com/Kattiell/parity-gate/blob/main/docs/rules.md"
+RULES_URI = "https://github.com/Kattiell/parity-gate/blob/trunk/docs/rules.md"
 
 _SEVERITY_LEVEL = {"breaking": "error", "risky": "warning", "additive": "note"}
 _SUBSCRIPT = re.compile(r"\[[^\]]*\]")

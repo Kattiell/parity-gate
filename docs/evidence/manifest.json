@@ -1,12 +1,12 @@
 {
-  "run_id": "20260914T023330Z-706fb7",
-  "generated_at": "2026-09-14T02:33:30Z",
+  "run_id": "20260924T033414Z-dcb639",
+  "generated_at": "2026-09-24T03:34:15Z",
   "tool_version": "0.1.0",
-  "chain_head": "c58ec76b96e7449b95857f901409c22d4f66827394cd35cb64cbca7e88065615",
+  "chain_head": "94d0799bd1fb67bf9a6b4d3183b6982b80d666afb3f84f42f6bcf453678a30ac",
   "files": {
-    "run.json": "c51231d7c212e27f6995947274db4e7c8520d60ae63f920a77f33ce8d427f8fe",
-    "report.md": "0fe7b65052840f4fc2819ae35ba3970635cdc65bd64ec0def27b88b7db636984",
-    "report.html": "782830524834c83bfc51f67c549ac347102b9591a355f46c7cbfc3ad1daa35e7",
-    "report.sarif": "6de6debb50ae3a7cdb0f9d2700b6a736343d2b81b7e16296544273b579e5e31d"
+    "run.json": "de691cc9cc3682b36ce85379d1bcfcee2ad742f41ea4e2831bbd1053740831b5",
+    "report.md": "dc0a7bd797cb38ccb9def644b77c97e64d0bab210ea831c8c5681b166715cbb7",
+    "report.html": "5b2e330e54a5eeaf60c94103c09ee62e20b10559c55e07a500261744de6300b7",
+    "report.sarif": "8a42dae78bcedb7ad0be0a7a5edf1e4eb7dfe9b77f53c810049f29c6464fb8f1"
   }
 }
